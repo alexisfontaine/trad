@@ -3,46 +3,24 @@
 	<head>
 		<title>TIPE</title>
 		<style type="text/css">
-			body{padding:5px 10px}a{color:#000}html,body,pre{display:block;position:relative;width:100%;margin:0;box-sizing:border-box;font-family:Consolas,monospace}pre{padding-left:55px;background:#fcfcfc;font-size:15px}code{position:relative;box-sizing:border-box;display:inline-block;width:100%;padding:10px;border-left:1px solid #eee;color:#46565b;line-height:20px;overflow-wrap:break-word}.comment,.brackets{color:#93a1a1}.operator{color:#000}.lib{font-style:italic}.function{color:#c92c2c}.arguments{color:#b58900}.keyword{color:#1990b8}.number{color:#9600ff}.string{color:#2f9c0a}.line{position:absolute;left:-50px;display:block;color:#dedede}
+			body{padding:5px 10px}a{color:#000}html,body,pre{display:block;position:relative;width:100%;margin:0;box-sizing:border-box;font-family:Consolas,monospace}pre{padding-left:55px;background:#fcfcfc;font-size:15px}code{position:relative;box-sizing:border-box;display:inline-block;width:100%;padding:10px;border-left:1px solid #eee;color:#46565b;line-height:20px;overflow-wrap:break-word}.comment,.brackets{color:#93a1a1}.operator{color:#000}.lib{font-style:italic}.function{color:#c92c2c}.arguments{color:#b58900}.keyword{color:#1990b8}.number{color:#9600ff}.string{color:#2f9c0a}.line{position:absolute;left:-45px;display:block;color:#bbb}
 		</style>
 	</head>
 
 	<body>
-		<h1>Fichier OCaml : `D:\TIPE\tipe02-1`</h1>
+		<h1>Fichier OCaml : `D:\TIPE\tipe01-test`</h1>
 		<a href="./index.html">Retour à l'accueil</a><br><br>
-		<pre><code id="code">#load &quot;str.cma&quot;;;
+		<pre><code id="code">(*open Pervasives;; open Array;; open List;; open Hashtbl;;*)
+#load &quot;str.cma&quot;;;
 
-	let incr_hash ?v:(v = 1.) h e f =
-		let he = try Hashtbl.find h e with Not_found -&gt; (
-			let he = Hashtbl.create 1000 in
-				Hashtbl.add he &quot;.&quot; 0.;
-				Hashtbl.add h e he;
-				he)
-			in
-				Hashtbl.replace he &quot;.&quot; (Hashtbl.find he &quot;.&quot; +. v);
-				try Hashtbl.replace he f (Hashtbl.find he f +. v);
-				with Not_found -&gt; Hashtbl.add he f v;;
-
-	let print_hash2 h =
-		let f k v =
-			print_string (k ^ &quot;  :  &quot; ^ string_of_float (Hashtbl.find v &quot;.&quot;) ^ &quot;\n&quot;);
-			let g l w =
-				if not(l = &quot;.&quot;) then
-					print_string (&quot;\t\t&quot; ^ l ^ &quot;  :  &quot; ^ string_of_float w ^ &quot;\n&quot;)
-			in Hashtbl.iter g v
-		in Hashtbl.iter f h;;
-
-let words f = Array.of_list (Str.split (Str.regexp &quot; &quot;) (input_line f));;
-
-
-let f = open_in &quot;D:\\TIPE\\corpus_aligne.txt&quot;
-and p = Hashtbl.create 1000 in (* Va contenir le nombre de fois où un mot est aligné à un autre *)
+let file = Pervasives.open_in &quot;D:\\TIPE\\corpus_aligne.txt&quot;
+and c = Hashtbl.create 1000 in (* Va contenir le nombre de fois où un mot est aligné à un autre *)
 	let rec count file =
 		try
 			(* Récupère la phrase en anglais (e), sa traduction (e) et l&#39;alignement (a) *)
-			let e = words f
-			and f = words f
-			and a = Str.split (Str.regexp &quot; &quot;) (input_line f) in
+			let e = Array.of_list (Str.split (Str.regexp &quot; &quot;) (input_line file))
+			and f = Array.of_list (Str.split (Str.regexp &quot; &quot;) (input_line file))
+			and a = Str.split (Str.regexp &quot; &quot;) (input_line file) in
 				(* Travail sur les paires de mots *)
 				let rec do_list l =
 					try
@@ -50,25 +28,25 @@ and p = Hashtbl.create 1000 in (* Va contenir le nombre de fois où un mot est a
 						let t = Array.of_list (Str.split (Str.regexp &quot;-&quot;) (List.hd l)) in
 							let i = int_of_string (t.(0)) - 1
 							and j = int_of_string (t.(1)) - 1 in
-								incr_hash p (e.(j)) (f.(i));
-						do_list (List.tl l)
+								(* Contient la clé de la paire de mot au format &quot;word mot&quot; *)
+								let t = e.(j) ^ &quot; &quot; ^ f.(i) in
+								print_string (t ^ &quot;\n&quot;);
+								(* Incrémente le compteur associé à la paire de mot *)
+								try
+									Hashtbl.replace c t (Hashtbl.find c t + 1)
+								with Not_found -&gt; Hashtbl.add c t 1;
+								(* Paire de mot suivant *)
+								do_list (List.tl l)
 					(* Fin des paires de mot*)
 					with Failure &quot;hd&quot; -&gt; ()
 				in do_list a;
-			count file;
+				(* Paire de phrase suivante *)
+				count file;
 		(* Fin des paires de phrase *)
 		with End_of_file -&gt; ()
-	in count f;
-
-	(* Normalisation. *)
-	let f k v =
-		let n =  Hashtbl.find v &quot;.&quot; in
-			let g l w =
-				if not(l = &quot;.&quot;) then Hashtbl.replace v l (w &#x2F;. n)
-		in Hashtbl.iter g v
-	in Hashtbl.iter f p;
+	in count file;
 (* Exemple de compte *)
-print_hash2 p;;</code></pre>
+Hashtbl.find c &quot;the la&quot;;;</code></pre>
 	</body>
 
 	<script>

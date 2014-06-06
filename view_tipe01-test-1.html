@@ -8,38 +8,11 @@
 	</head>
 
 	<body>
-		<h1>Fichier OCaml : `D:\TIPE\tipe01-2`</h1>
+		<h1>Fichier OCaml : `D:\TIPE\tipe01-test-1`</h1>
 		<a href="./index.html">Retour à l'accueil</a><br><br>
-		<pre><code id="code">(* Chargement des modules *)
-	(* Str - Manipulation de `string` *)
-	#load &quot;str.cma&quot;;;
+		<pre><code id="code">#load &quot;str.cma&quot;;;
 
-
-
-(* Quelques fonctions sur les `hash` *)
-	(* Récupère les clés d&#39;un `hash`. *)
-	let hash_keys h = Hashtbl.fold (fun k _ l -&gt; k :: l) h []
-
-	(* Transforme un `hash` en une `assoc_list`. *)
-	and list_of_hash h = Hashtbl.fold (fun k v l -&gt; (k, v) :: l) h [];;
-
-	(* Affiche les clés et valeurs d&#39;un `hash`. *)
-	let print_hash h = Hashtbl.iter (fun k v -&gt; print_string(k ^ &quot; -&gt; &quot; ^ string_of_float v ^ &quot;\n&quot;)) h
-
-	(* Affiche les clés triés (desc.) par leur valeur. *)
-	and print_hash_sort h = List.iter (fun (a, b) -&gt; print_string (a ^ &quot;  :  &quot; ^ string_of_float b ^ &quot;\n&quot;)) (List.rev (List.sort (fun (_, x) (_, y) -&gt; compare x y) (list_of_hash h)))
-
-	(* Affiche les clés triés (asc.) par leur valeur. *)
-	and print_hash_sort_d h = List.iter (fun (a, b) -&gt; print_string (a ^ &quot;  :  &quot; ^ string_of_float b ^ &quot;\n&quot;)) (List.sort (fun (_, x) (_, y) -&gt; compare x y) (list_of_hash h));;
-
-
-(* Définition d&#39;un type `hash2 = hash -&gt; hash` pour stocker les données relatifs à un mot et ses éventuelles traductions. Dans notre algorithme, la clé du `hash` de premier niveau contiendra un mot anglais, dont la valeur sera un second `hash` répertoriant les différentes traductions possibles du mot anglais parent. Dans ce `hash` de second niveau sera crée une clé &quot;.&quot; qui comptera le nombre d&#39;occurence du mot anglais dont il descend. *)
-(* Quelques fonctions sur les `hash2` *)
-	(* Récupère la valeur d&#39;un `hash2`. *)
-	let hash2_value h a b = Hashtbl.find (Hashtbl.find h a) b
-
-	(* Incrémente une des valeurs d&#39;un `hash2` ou l&#39;ajoute si elle n&#39;existe pas. Par défaut le pas vaut 1, à moins de passer le paramètre &lt;v&gt; en argument. Servira pour compter les paires de mots, notamment. *)
-	and incr_hash ?v:(v = 1.) h e f =
+	let incr_hash ?v:(v = 1.) h e f =
 		let he = try Hashtbl.find h e with Not_found -&gt; (
 			let he = Hashtbl.create 1000 in
 				Hashtbl.add he &quot;.&quot; 0.;
@@ -48,119 +21,54 @@
 			in
 				Hashtbl.replace he &quot;.&quot; (Hashtbl.find he &quot;.&quot; +. v);
 				try Hashtbl.replace he f (Hashtbl.find he f +. v);
-				with Not_found -&gt; Hashtbl.add he f v
+				with Not_found -&gt; Hashtbl.add he f v;;
 
-	(* Affiche un `hash2` en profondeur. *)
-	and print_hash2 h =
+	let print_hash2 h =
 		let f k v =
 			print_string (k ^ &quot;  :  &quot; ^ string_of_float (Hashtbl.find v &quot;.&quot;) ^ &quot;\n&quot;);
 			let g l w =
 				if not(l = &quot;.&quot;) then
 					print_string (&quot;\t\t&quot; ^ l ^ &quot;  :  &quot; ^ string_of_float w ^ &quot;\n&quot;)
 			in Hashtbl.iter g v
-		in Hashtbl.iter f h
-
-(*
-	and print_hash2_sum h =
-		let f k v =
-			let g l w s =
-				if l = &quot;.&quot; then s else s +. w
-			in print_string (k ^ &quot;  :  &quot; ^ string_of_float (Hashtbl.fold g v 0.) ^ &quot;\n&quot;)
-		in Hashtbl.iter f h
-*)
-
-	(* Affiche un `hash2` en profondeur, triés selon les clés du `hash` de second niveau. Le résultat est en plus filtré pour n&#39;afficher que les clés dont la valeur est supérieur au paramètre &lt;m&gt; passé en argument (par défaut ce paramètre est à 0.1) *)
-	and print_hash2_sort ?m:(m = 0.1) h =
-		let f k v =
-			print_string (k ^ &quot;  :  &quot; ^ string_of_float (Hashtbl.find v &quot;.&quot;) ^ &quot;\n&quot;);
-			let g (l, w) =
-				if not(l = &quot;.&quot;) &amp;&amp; w &gt;= m then
-					print_string (&quot;\t\t&quot; ^ l ^ &quot;  :  &quot; ^ string_of_float w ^ &quot;\n&quot;)
-			in List.iter g (List.rev (List.sort (fun (_, x) (_, y) -&gt; compare x y) (list_of_hash v)))
 		in Hashtbl.iter f h;;
 
-
-(* Autres fonctions *)
-	(* Renvoie dans un `vect` les mots d&#39;une ligne d&#39;un fichier. Si le curseur de lecture se trouve déjà sur la dernière ligne du fichier, lève une exception &quot;End_of_file&quot;. *)
-	let words f = Array.of_list (Str.split (Str.regexp &quot; &quot;) (input_line f));;
+let words f = Array.of_list (Str.split (Str.regexp &quot; &quot;) (input_line f));;
 
 
-
-(* Définition de quelques variables. *)
-	(* probabilités qu&#39;un mot soit aligné à un autre *)
-	let p = Hashtbl.create 1000
-	(* phrases en anglais *)
-	and en = open_in &quot;D:\\TIPE\\en-ex.txt&quot;
-	(* phrases en français *)
-	and fr = open_in &quot;D:\\TIPE\\fr-ex.txt&quot;;;
-
-(* Initialisation : uniformalisation de p. *)
-	(* Compte des couples de mots. Parcours des paires de phrase du corpus. *)
-	let rec parcours file =
+let f = open_in &quot;D:\\TIPE\\corpus_aligne.txt&quot;
+and p = Hashtbl.create 1000 in (* Va contenir le nombre de fois où un mot est aligné à un autre *)
+	let rec count file =
 		try
-			(* Récupère les mots de la paire de phrase. *)
-			let e = words en
-			and f = words fr in
-				let n = Array.length e
-				and m = Array.length f in
-					for i = 0 to n - 1 do
-						for j = 0 to m - 1 do
-							incr_hash p (e.(i)) (f.(j))
-						done
-					done;
-			parcours en
+			(* Récupère la phrase en anglais (e), sa traduction (e) et l&#39;alignement (a) *)
+			let e = words f
+			and f = words f
+			and a = Str.split (Str.regexp &quot; &quot;) (input_line f) in
+				(* Travail sur les paires de mots *)
+				let rec do_list l =
+					try
+						(* Récupère les indices des mots de la paire *)
+						let t = Array.of_list (Str.split (Str.regexp &quot;-&quot;) (List.hd l)) in
+							let i = int_of_string (t.(0)) - 1
+							and j = int_of_string (t.(1)) - 1 in
+								incr_hash p (e.(j)) (f.(i));
+						do_list (List.tl l)
+					(* Fin des paires de mot*)
+					with Failure &quot;hd&quot; -&gt; ()
+				in do_list a;
+			count file;
+		(* Fin des paires de phrase *)
 		with End_of_file -&gt; ()
-	in parcours en;
+	in count f;
 
 	(* Normalisation. *)
 	let f k v =
-		let n = Hashtbl.find v &quot;.&quot; in
+		let n =  Hashtbl.find v &quot;.&quot; in
 			let g l w =
 				if not(l = &quot;.&quot;) then Hashtbl.replace v l (w &#x2F;. n)
-			in Hashtbl.iter g v
-	in Hashtbl.iter f p;;
-
-(* Estimation de p. *)
-for z = 1 to 10 do
-	(* Remet le curseur de lecture des fichiers à 0. *)
-	seek_in fr 0;
-	seek_in en 0;
-
-	let c = Hashtbl.create 1000
-	and t = Hashtbl.create 1000 in
-		let rec parcours file =
-			try
-				let e = words en
-				and f = words fr in
-					let n = Array.length e - 1
-					and m = Array.length f - 1 in
-						for i = 0 to n do
-							let s = ref 0. in
-								for j = 0 to m do
-									s := !s +. hash2_value p (e.(i)) (f.(j))
-								done;
-								for j = 0 to m do
-									let a = e.(i) and b = f.(j) in
-										let x = hash2_value p a b &#x2F;. !s in
-											incr_hash ~v:(x) c a b;
-											try
-												Hashtbl.replace t b (Hashtbl.find t b +. x)
-											with Not_found -&gt; Hashtbl.add t b x
-								done;
-						done;
-				parcours en
-			with End_of_file -&gt; ()
-		in parcours en;
-
-	(* Normalisation et nouvelle valeur de p. *)
-	let f k v =
-		let g l w =
-			if not(l = &quot;.&quot;) then Hashtbl.replace v l (hash2_value c k l &#x2F;. Hashtbl.find t l)
 		in Hashtbl.iter g v
 	in Hashtbl.iter f p;
-
-done;
-print_hash2_sort p;;</code></pre>
+(* Exemple de compte *)
+print_hash2 p;;</code></pre>
 	</body>
 
 	<script>

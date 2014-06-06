@@ -3,7 +3,7 @@
 	<head>
 		<title>TIPE</title>
 		<style type="text/css">
-			body{padding:5px 10px}a{color:#000}html,body,pre{display:block;position:relative;width:100%;margin:0;box-sizing:border-box;font-family:Consolas,monospace}pre{padding-left:55px;background:#fcfcfc;font-size:15px}code{position:relative;box-sizing:border-box;display:inline-block;width:100%;padding:10px;border-left:1px solid #eee;color:#46565b;line-height:20px;overflow-wrap:break-word}.comment,.brackets{color:#93a1a1}.operator{color:#000}.lib{font-style:italic}.function{color:#c92c2c}.arguments{color:#b58900}.keyword{color:#1990b8}.number{color:#9600ff}.string{color:#2f9c0a}.line{position:absolute;left:-50px;display:block;color:#dedede}
+			body{padding:5px 10px}a{color:#000}html,body,pre{display:block;position:relative;width:100%;margin:0;box-sizing:border-box;font-family:Consolas,monospace}pre{padding-left:55px;background:#fcfcfc;font-size:15px}code{position:relative;box-sizing:border-box;display:inline-block;width:100%;padding:10px;border-left:1px solid #eee;color:#46565b;line-height:20px;overflow-wrap:break-word}.comment,.brackets{color:#93a1a1}.operator{color:#000}.lib{font-style:italic}.function{color:#c92c2c}.arguments{color:#b58900}.keyword{color:#1990b8}.number{color:#9600ff}.string{color:#2f9c0a}.line{position:absolute;left:-45px;display:block;color:#bbb}
 		</style>
 	</head>
 
@@ -78,18 +78,18 @@ Sys.time() -. time;;
 	let hash2_value h a b = Hashtbl.find (Hashtbl.find h a) b
 
 	(* Incrémente une des valeurs d&#39;un `hash2` ou l&#39;ajoute si elle n&#39;existe pas. Par défaut le pas vaut 1, à moins de passer le paramètre &lt;v&gt; en argument. *)
-	and incr_hash2 v h k1 k2 t =
-		if not(Hashtbl.mem h k1) then (
+	and incr_hash2 h a b v t =
+		if not(Hashtbl.mem h a) then (
 			let p = Hashtbl.create 1000 in
 				Hashtbl.add p t 0.;
-				Hashtbl.add h k1 p);
-		let sub_h = Hashtbl.find h k1 in
+				Hashtbl.add h a p);
+		let sub_h = Hashtbl.find h a in
 			Hashtbl.replace sub_h t (Hashtbl.find sub_h t +. v);
-			try Hashtbl.replace sub_h k2 (Hashtbl.find sub_h k2 +. v)
-			with Not_found -&gt; Hashtbl.add sub_h k2 v;;
+			try Hashtbl.replace sub_h b (Hashtbl.find sub_h b +. v)
+			with Not_found -&gt; Hashtbl.add sub_h b v;;
 		(* Déclinaisons de la version précédente : la première permet de manipuler des `string hash2`, la deuxième des `int hash2` *)
-		let incr_hash2_s ?v:(v = 1.) h k1 k2 = incr_hash2 v h k1 k2 &quot;.&quot;
-		and incr_hash2_i ?v:(v = 1.) h k1 k2 = incr_hash2 v h k1 k2 (-2);;
+		let incr_hash2_s ?v:(v = 1.) h a b = incr_hash2 h a b v &quot;.&quot;
+		and incr_hash2_i ?v:(v = 1.) h a b = incr_hash2 h a b v (-2);;
 
 	(* Normalise un `hash2`. *)
 	let normalize_hash2 h t =

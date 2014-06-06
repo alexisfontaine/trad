@@ -3,50 +3,259 @@
 	<head>
 		<title>TIPE</title>
 		<style type="text/css">
-			body{padding:5px 10px}a{color:#000}html,body,pre{display:block;position:relative;width:100%;margin:0;box-sizing:border-box;font-family:Consolas,monospace}pre{padding-left:55px;background:#fcfcfc;font-size:15px}code{position:relative;box-sizing:border-box;display:inline-block;width:100%;padding:10px;border-left:1px solid #eee;color:#46565b;line-height:20px;overflow-wrap:break-word}.comment,.brackets{color:#93a1a1}.operator{color:#000}.lib{font-style:italic}.function{color:#c92c2c}.arguments{color:#b58900}.keyword{color:#1990b8}.number{color:#9600ff}.string{color:#2f9c0a}.line{position:absolute;left:-50px;display:block;color:#dedede}
+			body{padding:5px 10px}a{color:#000}html,body,pre{display:block;position:relative;width:100%;margin:0;box-sizing:border-box;font-family:Consolas,monospace}pre{padding-left:55px;background:#fcfcfc;font-size:15px}code{position:relative;box-sizing:border-box;display:inline-block;width:100%;padding:10px;border-left:1px solid #eee;color:#46565b;line-height:20px;overflow-wrap:break-word}.comment,.brackets{color:#93a1a1}.operator{color:#000}.lib{font-style:italic}.function{color:#c92c2c}.arguments{color:#b58900}.keyword{color:#1990b8}.number{color:#9600ff}.string{color:#2f9c0a}.line{position:absolute;left:-45px;display:block;color:#bbb}
 		</style>
 	</head>
 
 	<body>
 		<h1>Fichier OCaml : `D:\TIPE\tipe02`</h1>
 		<a href="./index.html">Retour à l'accueil</a><br><br>
-		<pre><code id="code">(*open Pervasives;; open Array;; open List;; open Hashtbl;;*)
-#load &quot;str.cma&quot;;;
+		<pre><code id="code">#load &quot;str.cma&quot;;;
 
-let file = Pervasives.open_in &quot;D:\\TIPE\\corpus_aligne.txt&quot;
-and c = Hashtbl.create 1000 in (* Va contenir le nombre de fois où un mot est aligné à un autre *)
-	let rec count file =
+
+module Line =
+	struct
+		let preproc f = String.lowercase (String.trim (Str.global_replace (Str.regexp &quot;[0-9(),?;:&#x2F;!§%*µ£$¤{}°=+|&#39;#~&amp;²°\&quot;&lt;&gt;. -]+&quot;) &quot; &quot; (input_line f)))
+		let words f =
+			let s = input_line f in
+				let w = Array.of_list (Str.split (Str.regexp &quot; &quot;) s) in
+					s, w, Array.length w
+		let words_w f = match words f with s, w, l -&gt; w, l
+		let length l = List.length (Str.split (Str.regexp &quot; &quot;) l)
+	end;;
+
+
+module Hash =
+	struct
+		let to_list h = Hashtbl.fold (fun k v l -&gt; (k, v) :: l) h []
+		let print h = Hashtbl.iter (fun k v -&gt; print_string(k ^ &quot; -&gt; &quot; ^ string_of_float v ^ &quot;\n&quot;)) h
+		let print_sort h = List.iter (fun (a, b) -&gt; print_string (a ^ &quot;  :  &quot; ^ string_of_float b ^ &quot;\n&quot;)) (List.rev (List.sort (fun (_, x) (_, y) -&gt; compare x y) (to_list h)))
+		let print_sort_d h = List.iter (fun (a, b) -&gt; print_string (a ^ &quot;  :  &quot; ^ string_of_float b ^ &quot;\n&quot;)) (List.sort (fun (_, x) (_, y) -&gt; compare x y) (to_list h))
+	end;;
+
+
+module Hash2 =
+	struct
+		let i = -2
+		let s = &quot;.&quot;
+		let find h a b = Hashtbl.find (Hashtbl.find h a) b
+
+		let incr h a b v t =
+			if not(Hashtbl.mem h a) then (
+				let p = Hashtbl.create 100 in
+					Hashtbl.add p t 0.;
+					Hashtbl.add h a p);
+			let sub_h = Hashtbl.find h a in
+				Hashtbl.replace sub_h t (Hashtbl.find sub_h t +. v);
+				try Hashtbl.replace sub_h b (Hashtbl.find sub_h b +. v)
+				with Not_found -&gt; Hashtbl.add sub_h b v
+		let incr_s ?v:(v = 1.) h a b = incr h a b v s
+		let incr_i ?v:(v = 1.) h a b = incr h a b v i
+
+		let normalize h t =
+			let f k v =
+				let n = Hashtbl.find v t in
+					let g l w =
+						if not(l = t) then Hashtbl.replace v l (w &#x2F;. n)
+					in Hashtbl.iter g v
+			in Hashtbl.iter f h
+		let normalize_s h = normalize h s
+		let normalize_i h = normalize h i
+
+		let estimate h1 h2 t =
+			let f k v =
+				let n = find h2 k t in
+					let g l w =
+						if not(l = t) then Hashtbl.replace v l (find h2 k l &#x2F;. n)
+				in Hashtbl.iter g v
+			in Hashtbl.iter f h1
+		let estimate_s h1 h2 = estimate h1 h2 s
+		let estimate_i h1 h2 = estimate h1 h2 i
+
+		let print h a b t =
+			let f k v =
+				print_string ((a k) ^ &quot;  :  &quot; ^ string_of_float (Hashtbl.find v t) ^ &quot;\n&quot;);
+				let g l w =
+					if not(l = t) then
+						print_string (&quot;\t\t&quot; ^ (b l) ^ &quot;  :  &quot; ^ string_of_float (log w) ^ &quot;\n&quot;)
+				in Hashtbl.iter g v
+			in Hashtbl.iter f h
+		let print_s h = print h (fun x -&gt; x) (fun x -&gt; x) s
+		let print_i h = print h (fun c -&gt; &quot;(&quot; ^ string_of_int(fst(fst c)) ^ &quot;|&quot; ^ string_of_int(snd(fst c)) ^ &quot;)  |  &quot; ^ string_of_int (snd c)) (fun x -&gt; string_of_int x) i
+
+		let print_sort m h a b c t =
+			let f k v =
+				print_string ((a k) ^ &quot;  :  &quot; ^ string_of_float (Hashtbl.find v t) ^ &quot;\n&quot;);
+				let g (l, w) =
+					if not(l = t) &amp;&amp; w &gt;= m then
+						print_string (&quot;\t\t&quot; ^ (b l) ^ &quot;  :  &quot; ^ string_of_float (c w) ^ &quot;\n&quot;)
+				in List.iter g (List.rev (List.sort (fun (_, x) (_, y) -&gt; compare x y) (Hash.to_list v)))
+			in Hashtbl.iter f h
+		let print_sort_s ?m:(m = 0.1) h = print_sort m h (fun x -&gt; x) (fun x -&gt; x) (fun x -&gt; x) s
+		let print_sort_i ?m:(m = 0.1) h = print_sort m h (fun c -&gt; &quot;(&quot; ^ string_of_int(fst(fst c)) ^ &quot;|&quot; ^ string_of_int(snd(fst c)) ^ &quot;)  |  &quot; ^ string_of_int (snd c)) (fun x -&gt; string_of_int x) (fun x -&gt; x) i
+		let print_sort_l_s ?m:(m = 0.1) h = print_sort m h (fun x -&gt; x) (fun x -&gt; x) (fun x -&gt; log x) s
+		let print_sort_l_i ?m:(m = 0.1) h = print_sort m h (fun c -&gt; &quot;(&quot; ^ string_of_int(fst(fst c)) ^ &quot;|&quot; ^ string_of_int(snd(fst c)) ^ &quot;)  |  &quot; ^ string_of_int (snd c)) (fun x -&gt; string_of_int x) (fun x -&gt; log x) i
+
+		let print_sum h a t =
+			let f k v =
+				let g l w s =
+					if l = t then s else s +. w
+				in print_string ((a k) ^ &quot;  :  &quot; ^ string_of_float (Hashtbl.fold g v 0.) ^ &quot;\n&quot;)
+			in Hashtbl.iter f h
+		let print_sum_s h = print_sum h (fun x -&gt; x) s
+		let print_sum_i h = print_sum h (fun c -&gt; &quot;(&quot; ^ string_of_int(fst(fst c)) ^ &quot;|&quot; ^ string_of_int(snd(fst c)) ^ &quot;)  |  &quot; ^ string_of_int (snd c)) i
+	end;;
+
+
+(* Dossier de travail *)
+let folder = &quot;D:\\TIPE\\corpus\\&quot;
+and terminate time = print_string (&quot;tâche réalisée en &quot; ^ string_of_float(Sys.time() -. time) ^ &quot; secondes.&quot;);;
+
+
+(* Traitement de l&#39;extrait de corpus : on ne va garder que les phrases comptant moins de 15 mots et dont la différence de mot entre phrase anglaise et française ne soit pas trop grande. On enlève, de plus, tous les symboles et chiffres que peuvent contenir ces phrases. *)
+let time = Sys.time()
+and en = open_in (folder ^ &quot;en.txt&quot;)
+and fr = open_in(folder ^ &quot;fr.txt&quot;)
+and s = open_out (folder ^ &quot;en_fr.txt&quot;) in
+	let rec parcours file =
 		try
-			(* Récupère la phrase en anglais (e), sa traduction (e) et l&#39;alignement (a) *)
-			let e = Array.of_list (Str.split (Str.regexp &quot; &quot;) (input_line file))
-			and f = Array.of_list (Str.split (Str.regexp &quot; &quot;) (input_line file))
-			and a = Str.split (Str.regexp &quot; &quot;) (input_line file) in
-				(* Travail sur les paires de mots *)
-				let rec do_list l =
-					try
-						(* Récupère les indices des mots de la paire *)
-						let t = Array.of_list (Str.split (Str.regexp &quot;-&quot;) (List.hd l)) in
-							let i = int_of_string (t.(0)) - 1
-							and j = int_of_string (t.(1)) - 1 in
-								(* Contient la clé de la paire de mot au format &quot;word mot&quot; *)
-								let t = e.(j) ^ &quot; &quot; ^ f.(i) in
-								print_string (t ^ &quot;\n&quot;);
-								(* Incrémente le compteur associé à la paire de mot *)
-								try
-									Hashtbl.replace c t (Hashtbl.find c t + 1)
-								with Not_found -&gt; Hashtbl.add c t 1;
-								(* Paire de mot suivant *)
-								do_list (List.tl l)
-					(* Fin des paires de mot*)
-					with Failure &quot;hd&quot; -&gt; ()
-				in do_list a;
-				(* Paire de phrase suivante *)
-				count file;
-		(* Fin des paires de phrase *)
+			let e = Line.preproc en
+			and f = Line.preproc fr in
+				let n = Line.length e in
+					if n &gt; 0 &amp;&amp; n &lt;= 15 &amp;&amp; abs(Line.length f - n) &lt; (n &#x2F; 6 + 1) then (
+							if pos_out s &lt;&gt; 0 then output_string s &quot;\n&quot;;
+							output_string s (e ^ &quot;\n&quot; ^ f);
+						);
+			parcours en;
+		with End_of_file -&gt; ();
+	in parcours en;
+close_out s;
+close_in fr;
+close_in en;
+terminate time;;
+
+
+(* Définition des paramètres du modèle IBM 2. *)
+	(* probabilité qu&#39;un mot soit aligné à un autre *)
+	let p = Hashtbl.create 1000
+	(* paramètre de distorsion : probabilité que le i-ème mot d&#39;une phrase soit aligné au j-ième de l&#39;autre phrase de la paire *)
+	and q = Hashtbl.create 1000
+	(* Fichier contenant les paires de phrase *)
+	and corpus = open_in (folder ^ &quot;en_fr.txt&quot;);;
+
+
+(* Estimation des paramètres. *)
+let time = Sys.time() in
+	(* Initialisation : uniformalisation de p et q. *)
+	let rec parcours file =
+		try
+			let e, m = Line.words_w corpus
+			and f, n = Line.words_w corpus in
+				for i = 0 to m - 1 do
+					for j = -1 to n - 1 do
+						let b = if j = -1 then &quot;&quot; else f.(j) in
+							Hash2.incr_s p (e.(i)) b;
+							Hash2.incr_i q ((m, n), i) j
+					done
+				done;
+			parcours corpus
 		with End_of_file -&gt; ()
-	in count file;
-(* Exemple de compte *)
-Hashtbl.find c &quot;the la&quot;;;</code></pre>
+	in parcours corpus;
+	Hash2.normalize_s p;
+	Hash2.normalize_i q;
+
+	(* Première estimation de p : Espérance-Maximisation appliqué au modèle IBM 1. *)
+	for z = 1 to 5 do
+		(* Remet le curseur de lecture à 0. *)
+		seek_in corpus 0;
+		let r = Hashtbl.create 1000 in
+		let rec parcours file =
+			try
+				let e, m = Line.words_w corpus
+				and f, n = Line.words_w corpus in
+					for i = 0 to m - 1 do
+						let v = ref 0. in
+							for j = -1 to n - 1 do
+								let b = if j = -1 then &quot;&quot; else f.(j) in
+									v := !v +. Hash2.find p (e.(i)) b
+							done;
+							for j = -1 to n - 1 do
+								let a = e.(i) and b = if j = -1 then &quot;&quot; else f.(j) in
+									Hash2.incr_s ~v:((Hash2.find p a b) &#x2F;. !v) r a b
+							done
+					done;
+				parcours corpus
+			with End_of_file -&gt; ()
+		in parcours corpus;
+		(* Nouvelle valeur de p. *)
+		Hash2.estimate_s p r;
+	done;
+terminate time;;
+
+Hash2.print_sort_s p;;
+
+let time = Sys.time() in
+	(* Espérance-Maximisation appliqué aux paramètres p et q (IBM 2). *)
+	for z = 1 to 10 do
+		seek_in corpus 0;
+		let r = Hashtbl.create 1000
+		and s = Hashtbl.create 1000 in
+		let rec parcours file =
+			try
+				let e, m = Line.words_w corpus
+				and f, n = Line.words_w corpus in
+					for i = 0 to m - 1 do
+						let v = ref 0. in
+							for j = -1 to n - 1 do
+								let b = if j = -1 then &quot;&quot; else f.(j) in
+									v := !v +. (Hash2.find q ((m, n), i) j) *. (Hash2. find p (e.(i)) b)
+							done;
+							for j = -1 to n - 1 do
+								let a = e.(i) and b = if j = -1 then &quot;&quot; else f.(j) in
+									let x = ((Hash2.find q ((m, n), i) j) *. (Hash2.find p a b)) &#x2F;. !v in
+										Hash2.incr_s ~v:(x) r a b;
+										Hash2.incr_i ~v:(x) s ((m, n), i) j
+							done
+					done;
+				parcours corpus
+			with End_of_file -&gt; ()
+		in parcours corpus;
+		(* Nouvelle valeur de p et q. *)
+		Hash2.estimate_s p r;
+		Hash2.estimate_i q s;
+	done;
+terminate time;;
+
+Hash2.print_sort_i q;;
+Hash2.print_sort_s p;;
+
+(* Alignement des phrases. *)
+let time = Sys.time()
+and s = open_out (folder ^ &quot;en_fr.align2.txt&quot;) in
+	seek_in corpus 0;
+	let rec parcours file =
+		try
+			let en, e, m = Line.words corpus
+			and fr, f, n = Line.words corpus in
+				if pos_out s &lt;&gt; 0 then output_string s &quot;\n&quot;;
+				output_string s (en ^ &quot;\n&quot; ^ fr ^ &quot;\n&quot;);
+				for i = 0 to m - 1 do
+					let a = e.(i) in
+						let k = ref 0 and v = ref ((Hash2.find q ((m, n), i) (-1)) *. (Hash2.find p a &quot;&quot;)) in
+							for j = -1 to n - 1 do
+								let b = if j = -1 then &quot;&quot; else f.(j) in
+									let x = (Hash2.find q ((m, n), i) j) *. (Hash2.find p a b) in
+										if x &gt; !v then (v := x; k := j);
+							done;
+							output_string s (string_of_int i ^ &quot;-&quot; ^ string_of_int (!k) ^ &quot; &quot;)
+				done;
+			parcours corpus
+		with End_of_file -&gt; ()
+	in parcours corpus;
+close_out s;
+close_in corpus;
+terminate time;;
+</code></pre>
 	</body>
 
 	<script>
