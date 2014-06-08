@@ -19,12 +19,11 @@
 		</script>
 		<script>
 		$(function() {
-			var getElementByXpath = function (path) { return document.evaluate(path, document, null, 9, null).singleNodeValue; };
 			$('.trad').each(function(){
 				$e = $('.sentence:first-child', $(this)).children();
 				$f = $('.sentence:last-child', $(this)).children();
 				$c = $('canvas', $(this));
-				console.log($e);
+
 				var align	= $c.attr('data').split(' ').map(function(s){return s.split('.')}),
 					ctx		= $c[0].getContext('2d');
 				ctx.fillStyle = "#000";
