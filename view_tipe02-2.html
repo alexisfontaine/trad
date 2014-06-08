@@ -314,7 +314,7 @@ let folder = &quot;D:\\TIPE\\corpus\\&quot;
 and en_fr = &quot;en_fr.align2.txt&quot;
 and fr_en = &quot;fr_en.align2.txt&quot;
 and ai = &quot;align.txt&quot;
-and af = &quot;alignf&quot;
+and af = &quot;alignf.txt&quot;
 and jump f = ignore (input_line f, input_line f)
 and terminate time = print_string (&quot;tâche réalisée en &quot; ^ string_of_float (Sys.time() -. time) ^ &quot; secondes.&quot;);;
 
@@ -339,6 +339,7 @@ close_in f1;;
 
 
 (* Alignement final *)
+let time = Sys.time() in
 let fi = open_in (folder ^ ai)
 and so = open_out (folder ^ af) in
 	let rec parcours fi =
@@ -347,26 +348,20 @@ and so = open_out (folder ^ af) in
 			and fr = input_line fi
 			and e, m = Line.words_w fi
 			and f, n = Line.words_w fi in
-				let a = Hashtbl.create 50
-				and all = Hashtbl.create 50
-				and s = (if pos_out = 0 then &quot;&quot; else &quot;\n&quot;) in
+				let s = ref &quot;&quot; in
+					if pos_out so &lt;&gt; 0 then output_string so &quot;\n&quot;;
 					for i = 0 to m - 1 do
-						let j = e.(i) in
+						let j = int_of_string e.(i) in
 							if j &lt;&gt; -1 then
-								Hashtbl.add all i j;
-								if f.(j) = i then Hashtbl.add a i j
+								if int_of_string f.(j) = i then s := !s ^ (if !s = &quot;&quot; then en ^ &quot;\n&quot; ^ fr ^ &quot;\n&quot; else &quot; &quot;) ^ string_of_int i ^ &quot;.&quot; ^ string_of_int j
 					done;
-					for j = 0 to n - 1 do
-						let i = f.(j) in
-							if i &lt;&gt; -1 then
-								Hashtbl.add all i j;
-								if e.(i) = j then Hashtbl.add i j
-					done;
+			output_string so !s;
 			parcours fi
 		with End_of_file -&gt; ()
 	in parcours fi;
 close_out so;
-close_in fi;;</code></pre>
+close_in fi;
+terminate time;;</code></pre>
 
 		<script>
 			/*! jQuery v2.1.1 | (c) 2005, 2014 jQuery Foundation, Inc. | jquery.org/license */
