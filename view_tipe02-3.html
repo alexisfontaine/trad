@@ -161,26 +161,6 @@ and f_a = open_out Config.fr_a in
 (* On fait de même en inversant les rôles des phrases françaises et anglaises, pour obtenir un alignement fr -&gt; en ... *)
 
 
-(* Fusion des fichiers d&#39;alignement *)
-let f1 = open_in (folder ^ en_fr)
-and f2 = open_in (folder ^ fr_en)
-and s = open_out (folder ^ ai) in
-	let rec parcours f1 f2 =
-		try
-			jump f2;
-			output_string s (input_line f1 ^ &quot;\n&quot;);
-			output_string s (input_line f1 ^ &quot;\n&quot;);
-			let a1 = input_line f1
-			and a2 = input_line f2 in
-				output_string s (a1 ^ &quot;\n&quot; ^ a2 ^ &quot;\n&quot;);
-			parcours f1 f2
-		with End_of_file -&gt; ()
-	in parcours f1 f2;
-close_out s;
-close_in f2;
-close_in f1;;
-
-
 (* Alignement final : On va ici combiner les alignements obtenues précédemment, en appliquant une heuristique. On prend d&#39;abord l&#39;intersection des alignements, qui donne les alignements les plus sûrs. Puis on s&#39;intéresse dans l&#39;union aux alignements voisins. Enfin, pour chaque mot non aligné on ajoute les éventuels alignements restants. *)
 let time = Config.time ~n:(&quot;alignement final&quot;) ()
 and f_en, f_fr, f_en_fr_i, f_en_fr_v, f_en_fr, close = Config.open_ali () in
