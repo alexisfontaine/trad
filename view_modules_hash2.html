@@ -9,83 +9,112 @@
 	</head>
 
 	<body>
-		<h1>Fichier OCaml : `D:\TIPE\tipe01`</h1>
+		<h1>Fichier OCaml : `D:\TIPE\modules/hash2`</h1>
 		<a href="./index.html">Retour à l'accueil</a><br><br>
-		<pre><code id="code">let rec is_in_vect a = function
-	[] -&gt; false
-	| t::q -&gt; (t = a) || (is_in_vect a q);;
-let words s n = 
-	let rec aux s a = match s with
-		[] -&gt; a
-		| (e, f)::q -&gt; let rec insere = function
-			[] -&gt; a
-			| t::r -&gt; if not(is_in_vect t a) then t::(insere r) else insere r
-		in aux q (insere (Array.to_list (if n = 1 then e else f)))
-	in Array.of_list (aux s []);;
+		<pre><code id="code">(* Dépendances : Hash, [Pervasives, List, Hashtbl] *)
 
-let e1 = [|&quot;the&quot;,0; &quot;house&quot;,1|]
-and e2 = [|&quot;the&quot;,0; &quot;car&quot;,2|]
-and e3 = [|&quot;a&quot;,3; &quot;car&quot;,2|]
-and f1 = [|&quot;la&quot;,0; &quot;maison&quot;,1|]
-and f2 = [|&quot;la&quot;,0; &quot;voiture&quot;,2|]
-and f3 = [|&quot;une&quot;,3; &quot;voiture&quot;,2|];;
-
-let s = [e1, f1; e2, f2; e3, f3];;
-
-let s = Array.of_list s
-and e = words s 1
-and f = words s 2;;
-
-let l = Array.length s
-and m = Array.length e
-and n = Array.length f;;
-
-let mf = float_of_int m
-and nf = float_of_int n;;
-
-let p = Array.make_matrix m n 0. and z = 1. &#x2F;. nf;;
-(* Uniformalisation de p *)
-for i = 0 to l - 1 do
-	let es, fs = s.(i) in
-		for j = 0 to Array.length es - 1 do
-			for k = 0 to Array.length fs - 1 do
-				let a = snd (es.(j)) and b = snd (fs.(k)) in
-					p.(a).(b) &lt;- z
-			done
-		done
-done;p;;
-
-for z = 1 to 20 do
-
-let c = Array.make_matrix m n 0.
-and t = Array.make n 0. in
-
-for i = 0 to l - 1 do
-	let es, fs = s.(i) in
-		let mp = Array.length es - 1
-		and np = Array.length fs - 1 in
-		(* Normalisation *)
-		for j = 0 to mp do
-			let ts = ref 0. in
-			for k = 0 to np do
-				let a = snd (es.(j)) and b = snd (fs.(k)) in
-					ts := !ts +. p.(a).(b)
-			done;
-			for k = 0 to np do
-				let a = snd (es.(j)) and b = snd (fs.(k)) in
-					c.(a).(b) &lt;- c.(a).(b) +. p.(a).(b) &#x2F;. !ts;
-					t.(b) &lt;- t.(b) +. p.(a).(b) &#x2F;. !ts
-			done
-		done
-done;
-for j = 0 to m - 1 do
-	for k = 0 to n - 1 do
-		p.(j).(k) &lt;- c.(j).(k) &#x2F;. t.(k)
-	done
-done
-
-done;
-p;;</code></pre>
+module Hash2 :
+	sig
+		val find : (&#39;a, (&#39;b, &#39;c) Hashtbl.t) Hashtbl.t -&gt; &#39;a -&gt; &#39;b -&gt; &#39;c
+		val incr : (&#39;a, (&#39;b, float) Hashtbl.t) Hashtbl.t -&gt; &#39;a -&gt; &#39;b -&gt; float -&gt; &#39;b -&gt; unit
+		val incr_s : ?v:float -&gt; (&#39;a, (string, float) Hashtbl.t) Hashtbl.t -&gt; &#39;a -&gt; string -&gt; unit
+		val incr_i : ?v:float -&gt; (&#39;a, (int * int * int, float) Hashtbl.t) Hashtbl.t -&gt; &#39;a -&gt; int * int * int -&gt; unit
+		val sum : (&#39;a, (&#39;b, float) Hashtbl.t) Hashtbl.t -&gt; &#39;b -&gt; (&#39;b, float) Hashtbl.t
+		val sum_s : (&#39;a, (string, float) Hashtbl.t) Hashtbl.t -&gt; (string, float) Hashtbl.t
+		val sum_i : (&#39;a, (int * int * int, float) Hashtbl.t) Hashtbl.t -&gt; (int * int * int, float) Hashtbl.t
+		val normalize : (&#39;a, (&#39;b, float) Hashtbl.t) Hashtbl.t -&gt; (&#39;b, float) Hashtbl.t -&gt; &#39;b -&gt; unit
+		val normalize_s : (&#39;a, (string, float) Hashtbl.t) Hashtbl.t -&gt; (string, float) Hashtbl.t -&gt; unit
+		val normalize_i : (&#39;a, (int * int * int, float) Hashtbl.t) Hashtbl.t -&gt; (int * int * int, float) Hashtbl.t -&gt; unit
+		val estimate : (&#39;a, (&#39;b, float) Hashtbl.t) Hashtbl.t -&gt; (&#39;a, (&#39;b, float) Hashtbl.t) Hashtbl.t -&gt; (&#39;b, float) Hashtbl.t -&gt; &#39;b -&gt; unit
+		val estimate_s : (&#39;a, (string, float) Hashtbl.t) Hashtbl.t -&gt; (&#39;a, (string, float) Hashtbl.t) Hashtbl.t -&gt; (string, float) Hashtbl.t -&gt; unit
+		val estimate_i : (&#39;a, (int * int * int, float) Hashtbl.t) Hashtbl.t -&gt; (&#39;a, (int * int * int, float) Hashtbl.t) Hashtbl.t -&gt; (int * int * int, float) Hashtbl.t -&gt; unit
+		val print : (&#39;a, (&#39;b, float) Hashtbl.t) Hashtbl.t -&gt; (&#39;a -&gt; string) -&gt; (&#39;b -&gt; string) -&gt; (float -&gt; float) -&gt; &#39;b -&gt; unit
+		val print_s : (string, (string, float) Hashtbl.t) Hashtbl.t -&gt; unit
+		val print_i : (int, (int * int * int, float) Hashtbl.t) Hashtbl.t -&gt; unit
+		val print_sort : float -&gt; (&#39;a, (&#39;b, float) Hashtbl.t) Hashtbl.t -&gt; (&#39;a -&gt; string) -&gt; (&#39;b -&gt; string) -&gt; (float -&gt; float) -&gt; &#39;b -&gt; unit
+		val print_sort_s : ?m:float -&gt; (string, (string, float) Hashtbl.t) Hashtbl.t -&gt; unit
+		val print_sort_i : ?m:float -&gt; (int, (int * int * int, float) Hashtbl.t) Hashtbl.t -&gt; unit
+		val print_sort_l_s : ?m:float -&gt; (string, (string, float) Hashtbl.t) Hashtbl.t -&gt; unit
+		val print_sort_l_i : ?m:float -&gt; (int, (int * int * int, float) Hashtbl.t) Hashtbl.t -&gt; unit
+		val print_sum : (&#39;a, (&#39;b, float) Hashtbl.t) Hashtbl.t -&gt; (&#39;b -&gt; string) -&gt; &#39;b -&gt; unit
+		val print_sum_s : (&#39;a, (string, float) Hashtbl.t) Hashtbl.t -&gt; unit
+		val print_sum_i : (&#39;a, (int * int * int, float) Hashtbl.t) Hashtbl.t -&gt; unit
+	end =
+	struct
+		let s = &quot;.&quot;
+		let i = (0, 0, 0)
+		let _id x = x
+		let _triple (x, y, z) = string_of_int x ^ &quot; | (&quot; ^ string_of_int y ^ &quot;, &quot; ^ string_of_int z ^ &quot;)&quot;
+		let _sort h = List.sort (fun (_, x) (_, y) -&gt; compare x y) (Hash.to_list h)
+		let find h a b = Hashtbl.find (Hashtbl.find h a) b
+		let incr h a b v t =
+			try
+				let sub_h = Hashtbl.find h a in
+					Hash.incr ~v:(v) sub_h t;
+					Hash.incr ~v:(v) sub_h b
+			with Not_found -&gt;
+				let sub_h = Hashtbl.create 100 in
+					Hash.incr ~v:(v) sub_h t;
+					Hash.incr ~v:(v) sub_h b;
+					Hashtbl.add h a sub_h
+		let incr_s ?v:(v = 1.) h a b = incr h a b v s
+		let incr_i ?v:(v = 1.) h a b = incr h a b v i
+		let sum h t =
+			let s = Hashtbl.create 1000 in
+				let f k v =
+					let g l w =
+						if l &lt;&gt; t then Hash.incr ~v:(w) s l
+					in Hashtbl.iter g v
+				in Hashtbl.iter f h;
+				s
+		let sum_s h = sum h s
+		let sum_i h = sum h i
+		let normalize h1 h2 t =
+			let f k v =
+				let g l w =
+					if l &lt;&gt; t then Hashtbl.replace v l (w &#x2F;. Hashtbl.find h2 l)
+				in Hashtbl.iter g v
+			in Hashtbl.iter f h1
+		let normalize_s h1 h2 = normalize h1 h2 s
+		let normalize_i h1 h2 = normalize h1 h2 i
+		let estimate h1 h2 h3 t =
+			let f k v =
+				let g l w =
+					if l &lt;&gt; t then Hashtbl.replace v l (find h2 k l &#x2F;. Hashtbl.find h3 l)
+				in Hashtbl.iter g v
+			in Hashtbl.iter f h1
+		let estimate_s h1 h2 h3 = estimate h1 h2 h3 s
+		let estimate_i h1 h2 h3 = estimate h1 h2 h3 i
+		let print h a b c t =
+			let f k v =
+				print_string (a k ^ &quot;  :  &quot; ^ string_of_float (Hashtbl.find v t) ^ &quot;\n&quot;);
+				let g l w =
+					if l &lt;&gt; t then
+						print_string (&quot;\t\t&quot; ^ b l ^ &quot;  :  &quot; ^ string_of_float (c w) ^ &quot;\n&quot;)
+				in Hashtbl.iter g v
+			in Hashtbl.iter f h
+		let print_s h = print h _id _id _id s
+		let print_i h = print h string_of_int _triple _id i
+		let print_sort m h a b c t =
+			let f k v =
+				print_string (a k ^ &quot;  :  &quot; ^ string_of_float (Hashtbl.find v t) ^ &quot;\n&quot;);
+				let g (l, w) =
+					if l &lt;&gt; t &amp;&amp; w &gt;= m then
+						print_string (&quot;\t\t&quot; ^ b l ^ &quot;  :  &quot; ^ string_of_float (c w) ^ &quot;\n&quot;)
+				in List.iter g (List.rev (_sort v))
+			in Hashtbl.iter f h
+		let print_sort_s ?m:(m = 0.1) h = print_sort m h _id _id _id s
+		let print_sort_i ?m:(m = 0.1) h = print_sort m h string_of_int _triple _id i
+		let print_sort_l_s ?m:(m = 0.1) h = print_sort m h _id _id (fun x -&gt; log x) s
+		let print_sort_l_i ?m:(m = 0.1) h = print_sort m h string_of_int _triple (fun x -&gt; log x) i
+		let print_sum h a t =
+			let s = sum h t in
+				let f k v =
+					print_string (a k ^ &quot;  :  &quot; ^ string_of_float v ^ &quot;\n&quot;)
+				in Hashtbl.iter f s
+		let print_sum_s h = print_sum h _id s
+		let print_sum_i h = print_sum h _triple i
+	end</code></pre>
 
 		<script>
 			/*! jQuery v2.1.1 | (c) 2005, 2014 jQuery Foundation, Inc. | jquery.org/license */

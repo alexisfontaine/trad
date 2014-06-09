@@ -9,83 +9,29 @@
 	</head>
 
 	<body>
-		<h1>Fichier OCaml : `D:\TIPE\tipe01`</h1>
+		<h1>Fichier OCaml : `D:\TIPE\modules/hash`</h1>
 		<a href="./index.html">Retour à l'accueil</a><br><br>
-		<pre><code id="code">let rec is_in_vect a = function
-	[] -&gt; false
-	| t::q -&gt; (t = a) || (is_in_vect a q);;
-let words s n = 
-	let rec aux s a = match s with
-		[] -&gt; a
-		| (e, f)::q -&gt; let rec insere = function
-			[] -&gt; a
-			| t::r -&gt; if not(is_in_vect t a) then t::(insere r) else insere r
-		in aux q (insere (Array.to_list (if n = 1 then e else f)))
-	in Array.of_list (aux s []);;
+		<pre><code id="code">(* Dépendances : [Pervasives, List, Hashtbl] *)
 
-let e1 = [|&quot;the&quot;,0; &quot;house&quot;,1|]
-and e2 = [|&quot;the&quot;,0; &quot;car&quot;,2|]
-and e3 = [|&quot;a&quot;,3; &quot;car&quot;,2|]
-and f1 = [|&quot;la&quot;,0; &quot;maison&quot;,1|]
-and f2 = [|&quot;la&quot;,0; &quot;voiture&quot;,2|]
-and f3 = [|&quot;une&quot;,3; &quot;voiture&quot;,2|];;
-
-let s = [e1, f1; e2, f2; e3, f3];;
-
-let s = Array.of_list s
-and e = words s 1
-and f = words s 2;;
-
-let l = Array.length s
-and m = Array.length e
-and n = Array.length f;;
-
-let mf = float_of_int m
-and nf = float_of_int n;;
-
-let p = Array.make_matrix m n 0. and z = 1. &#x2F;. nf;;
-(* Uniformalisation de p *)
-for i = 0 to l - 1 do
-	let es, fs = s.(i) in
-		for j = 0 to Array.length es - 1 do
-			for k = 0 to Array.length fs - 1 do
-				let a = snd (es.(j)) and b = snd (fs.(k)) in
-					p.(a).(b) &lt;- z
-			done
-		done
-done;p;;
-
-for z = 1 to 20 do
-
-let c = Array.make_matrix m n 0.
-and t = Array.make n 0. in
-
-for i = 0 to l - 1 do
-	let es, fs = s.(i) in
-		let mp = Array.length es - 1
-		and np = Array.length fs - 1 in
-		(* Normalisation *)
-		for j = 0 to mp do
-			let ts = ref 0. in
-			for k = 0 to np do
-				let a = snd (es.(j)) and b = snd (fs.(k)) in
-					ts := !ts +. p.(a).(b)
-			done;
-			for k = 0 to np do
-				let a = snd (es.(j)) and b = snd (fs.(k)) in
-					c.(a).(b) &lt;- c.(a).(b) +. p.(a).(b) &#x2F;. !ts;
-					t.(b) &lt;- t.(b) +. p.(a).(b) &#x2F;. !ts
-			done
-		done
-done;
-for j = 0 to m - 1 do
-	for k = 0 to n - 1 do
-		p.(j).(k) &lt;- c.(j).(k) &#x2F;. t.(k)
-	done
-done
-
-done;
-p;;</code></pre>
+module Hash :
+	sig
+		val to_list : (&#39;a, &#39;b) Hashtbl.t -&gt; (&#39;a * &#39;b) list
+		val incr : ?v:float -&gt; (&#39;a, float) Hashtbl.t -&gt; &#39;a -&gt; unit
+		val print : (string, float) Hashtbl.t -&gt; unit
+		val print_sort : (string, float) Hashtbl.t -&gt; unit
+		val print_sort_d : (string, float) Hashtbl.t -&gt; unit
+	end =
+	struct
+		let to_list h = Hashtbl.fold (fun p r l -&gt; (p, r) :: l) h []
+		let incr ?v:(v = 1.) h x =
+			try Hashtbl.replace h x (Hashtbl.find h x +. v)
+			with Not_found -&gt; Hashtbl.add h x v
+		let _couple (x, y) = print_string (x ^ &quot;  :  &quot; ^ string_of_float y ^ &quot;\n&quot;)
+		let _sort h = List.sort (fun (_, x) (_, y) -&gt; compare x y) (to_list h)
+		let print h = Hashtbl.iter (fun p r -&gt; _couple (p, r)) h
+		let print_sort h = List.iter _couple (List.rev (_sort h))
+		let print_sort_d h = List.iter _couple (_sort h)
+	end</code></pre>
 
 		<script>
 			/*! jQuery v2.1.1 | (c) 2005, 2014 jQuery Foundation, Inc. | jquery.org/license */

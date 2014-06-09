@@ -9,83 +9,38 @@
 	</head>
 
 	<body>
-		<h1>Fichier OCaml : `D:\TIPE\tipe01`</h1>
+		<h1>Fichier OCaml : `D:\TIPE\modules/line`</h1>
 		<a href="./index.html">Retour à l'accueil</a><br><br>
-		<pre><code id="code">let rec is_in_vect a = function
-	[] -&gt; false
-	| t::q -&gt; (t = a) || (is_in_vect a q);;
-let words s n = 
-	let rec aux s a = match s with
-		[] -&gt; a
-		| (e, f)::q -&gt; let rec insere = function
-			[] -&gt; a
-			| t::r -&gt; if not(is_in_vect t a) then t::(insere r) else insere r
-		in aux q (insere (Array.to_list (if n = 1 then e else f)))
-	in Array.of_list (aux s []);;
+		<pre><code id="code">(* Dépendances : Str, [Pervasives, Array, List, String] *)
 
-let e1 = [|&quot;the&quot;,0; &quot;house&quot;,1|]
-and e2 = [|&quot;the&quot;,0; &quot;car&quot;,2|]
-and e3 = [|&quot;a&quot;,3; &quot;car&quot;,2|]
-and f1 = [|&quot;la&quot;,0; &quot;maison&quot;,1|]
-and f2 = [|&quot;la&quot;,0; &quot;voiture&quot;,2|]
-and f3 = [|&quot;une&quot;,3; &quot;voiture&quot;,2|];;
-
-let s = [e1, f1; e2, f2; e3, f3];;
-
-let s = Array.of_list s
-and e = words s 1
-and f = words s 2;;
-
-let l = Array.length s
-and m = Array.length e
-and n = Array.length f;;
-
-let mf = float_of_int m
-and nf = float_of_int n;;
-
-let p = Array.make_matrix m n 0. and z = 1. &#x2F;. nf;;
-(* Uniformalisation de p *)
-for i = 0 to l - 1 do
-	let es, fs = s.(i) in
-		for j = 0 to Array.length es - 1 do
-			for k = 0 to Array.length fs - 1 do
-				let a = snd (es.(j)) and b = snd (fs.(k)) in
-					p.(a).(b) &lt;- z
-			done
-		done
-done;p;;
-
-for z = 1 to 20 do
-
-let c = Array.make_matrix m n 0.
-and t = Array.make n 0. in
-
-for i = 0 to l - 1 do
-	let es, fs = s.(i) in
-		let mp = Array.length es - 1
-		and np = Array.length fs - 1 in
-		(* Normalisation *)
-		for j = 0 to mp do
-			let ts = ref 0. in
-			for k = 0 to np do
-				let a = snd (es.(j)) and b = snd (fs.(k)) in
-					ts := !ts +. p.(a).(b)
-			done;
-			for k = 0 to np do
-				let a = snd (es.(j)) and b = snd (fs.(k)) in
-					c.(a).(b) &lt;- c.(a).(b) +. p.(a).(b) &#x2F;. !ts;
-					t.(b) &lt;- t.(b) +. p.(a).(b) &#x2F;. !ts
-			done
-		done
-done;
-for j = 0 to m - 1 do
-	for k = 0 to n - 1 do
-		p.(j).(k) &lt;- c.(j).(k) &#x2F;. t.(k)
-	done
-done
-
-done;
-p;;</code></pre>
+module Line :
+	sig
+		val length : string -&gt; int
+		val replace : string -&gt; string -&gt; string -&gt; string
+		val no_accent : string -&gt; string
+		val preprocess : in_channel -&gt; string * int
+		val words : in_channel -&gt; string * string array * int
+		val numbers : in_channel -&gt; int array * int
+	end =
+	struct
+		let length l = List.length (Str.split (Str.regexp &quot; &quot;) l)
+		let replace l p r = Str.global_replace (Str.regexp p) r l
+		let no_accent l =
+			let p = [&quot;[\224-\229]&quot;; &quot;[\192-\197]&quot;; &quot;[\232-\235]&quot;; &quot;[\200-\203]&quot;; &quot;[\236-\239]&quot;; &quot;[\204-\207]&quot;; &quot;[\242-\246\248]&quot;; &quot;[\210-\214\216]&quot;; &quot;[\249-\252]&quot;; &quot;[\217-\220]&quot;; &quot;[\253\255]&quot;; &quot;[\159\221]&quot;; &quot;[\231]&quot;; &quot;[\199]&quot;; &quot;[\131]&quot;; &quot;[\241]&quot;; &quot;[\209]&quot;; &quot;[\154]&quot;; &quot;[\138]&quot;; &quot;[\158]&quot;; &quot;[\142]&quot;; &quot;[\223]&quot;; &quot;[\156]&quot;; &quot;[\140]&quot;; &quot;[\230]&quot;; &quot;[\198]&quot;]
+			and r = [&quot;a&quot;; &quot;A&quot;; &quot;e&quot;; &quot;E&quot;; &quot;i&quot;; &quot;I&quot;; &quot;o&quot;; &quot;O&quot;; &quot;u&quot;; &quot;U&quot;; &quot;y&quot;; &quot;Y&quot;; &quot;c&quot;; &quot;C&quot;; &quot;f&quot;; &quot;n&quot;; &quot;N&quot;; &quot;&quot;; &quot;S&quot;; &quot;z&quot;; &quot;Z&quot;; &quot;ss&quot;; &quot;oe&quot;; &quot;OE&quot;; &quot;ae&quot;; &quot;AE&quot;] in
+				let rec g s p r = match p, r with
+					| h1::q1, h2::q2 -&gt; g (replace s h1 h2) q1 q2
+					| _ -&gt; s
+				in g l p r
+		let preprocess f =
+			let l = String.lowercase (String.trim (replace (no_accent (input_line f)) &quot;[^A-Za-z]+&quot; &quot; &quot;)) in
+				l, length l
+		let words f =
+			let s = input_line f in
+				let w = Array.of_list (Str.split (Str.regexp &quot; &quot;) s) in
+					s, w, Array.length w
+		let numbers f = let _, e, n = words f in Array.map int_of_string e, n
+	end</code></pre>
 
 		<script>
 			/*! jQuery v2.1.1 | (c) 2005, 2014 jQuery Foundation, Inc. | jquery.org/license */

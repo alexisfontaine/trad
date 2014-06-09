@@ -4,139 +4,23 @@
 		<meta charset="utf-8">
 		<title>TIPE</title>
 		<style type="text/css">
-			body{padding:5px 10px}a{color:#000}html,body,pre{display:block;position:relative;width:100%;margin:0;box-sizing:border-box;font-family:Consolas,monospace}pre{padding-left:55px;background:#fcfcfc;font-size:15px}code{position:relative;box-sizing:border-box;display:inline-block;width:100%;padding:10px;border-left:1px solid #eee;color:#46565b;line-height:20px;overflow-wrap:break-word}.comment,.brackets{color:#93a1a1}.operator{color:#000}.lib{font-style:italic}.function{color:#c92c2c}.arguments{color:#b58900}.keyword{color:#1990b8}.number{color:#9600ff}.string{color:#2f9c0a}.line{position:absolute;left:-45px;display:block;color:#bbb}.module{font-style:italic;color:#6c00ff}
+			body{padding:5px 10px}a{color:#000}html,body,pre{display:block;position:relative;width:100%;margin:0;box-sizing:border-box;font-family:Consolas,monospace}pre{padding-left:55px;background:#fcfcfc;font-size:15px}code{position:relative;box-sizing:border-box;display:inline-block;width:100%;padding:10px;border-left:1px solid #eee;color:#46565b;line-height:20px;overflow-wrap:break-word}.comment,.brackets{color:#93a1a1}.operator{color:#000}.lib{font-style:italic}.var,.function{color:#c92c2c}.argument,.module{color:#b58900}.keyword{color:#1990b8}.number{color:#9600ff}.string{color:#2f9c0a}.line{position:absolute;left:-45px;display:block;color:#bbb}.special{font-style:italic;color:#6c00ff}
 		</style>
 	</head>
 
 	<body>
 		<h1>Fichier OCaml : `D:\TIPE\tipe02-2`</h1>
 		<a href="./index.html">Retour à l'accueil</a><br><br>
-		<pre><code id="code">#load &quot;str.cma&quot;;;
+		<pre><code id="code">(* Chargement des librairies Ocaml. *)
+#load &quot;str.cma&quot;;;
 
+(* Changement du dossier de travail. *)
+#cd &quot;D:\\TIPE\\&quot;;;
 
-module Line =
-	struct
-		let replace l p r = Str.global_replace (Str.regexp p) r l
-		let length l = List.length (Str.split (Str.regexp &quot; &quot;) l)
-
-		let no_accent l =
-			let p = [&quot;[\224-\229]&quot;; &quot;[\192-\197]&quot;; &quot;[\232-\235]&quot;; &quot;[\200-\203]&quot;; &quot;[\236-\239]&quot;; &quot;[\204-\207]&quot;; &quot;[\242-\246\248]&quot;; &quot;[\210-\214\216]&quot;; &quot;[\249-\252]&quot;; &quot;[\217-\220]&quot;; &quot;[\253\255]&quot;; &quot;[\159\221]&quot;; &quot;[\231]&quot;; &quot;[\199]&quot;; &quot;[\131]&quot;; &quot;[\241]&quot;; &quot;[\209]&quot;; &quot;[\154]&quot;; &quot;[\138]&quot;; &quot;[\158]&quot;; &quot;[\142]&quot;; &quot;[\223]&quot;; &quot;[\156]&quot;; &quot;[\140]&quot;; &quot;[\230]&quot;; &quot;[\198]&quot;]
-			and r = [&quot;a&quot;; &quot;A&quot;; &quot;e&quot;; &quot;E&quot;; &quot;i&quot;; &quot;I&quot;; &quot;o&quot;; &quot;O&quot;; &quot;u&quot;; &quot;U&quot;; &quot;y&quot;; &quot;Y&quot;; &quot;c&quot;; &quot;C&quot;; &quot;f&quot;; &quot;n&quot;; &quot;N&quot;; &quot;&quot;; &quot;S&quot;; &quot;z&quot;; &quot;Z&quot;; &quot;ss&quot;; &quot;oe&quot;; &quot;OE&quot;; &quot;ae&quot;; &quot;AE&quot;] in
-				let rec aux s p r = match p, r with
-					| h1::q1, h2::q2 -&gt; aux (replace s h1 h2) q1 q2
-					| _ -&gt; s
-				in aux l p r
-
-		let preproc f = String.lowercase (String.trim (replace (no_accent (input_line f)) &quot;[^A-Za-z]+&quot; &quot; &quot;))
-
-		let words f =
-			let s = input_line f in
-				let w = Array.of_list (Str.split (Str.regexp &quot; &quot;) s) in
-					s, w, Array.length w
-		let words_w f = match words f with s, w, l -&gt; w, l
-	end;;
-
-
-module Hash =
-	struct
-		let to_list h = Hashtbl.fold (fun k v l -&gt; (k, v) :: l) h []
-
-		let incr ?v:(v = 1.) h a =
-			try Hashtbl.replace h a (Hashtbl.find h a +. v)
-			with Not_found -&gt; Hashtbl.add h a v
-		let print h = Hashtbl.iter (fun k v -&gt; print_string(k ^ &quot; -&gt; &quot; ^ string_of_float v ^ &quot;\n&quot;)) h
-
-		let sort h = List.sort (fun (_, x) (_, y) -&gt; compare x y) (to_list h)
-		let print_couple (x, y) = print_string (x ^ &quot;  :  &quot; ^ string_of_float y ^ &quot;\n&quot;)
-		let print_sort h = List.iter print_couple (List.rev (sort h))
-		let print_sort_d h = List.iter print_couple (sort h)
-	end;;
-
-
-module Hash2 =
-	struct
-		let s = &quot;.&quot;
-		let i = (0, 0, 0)
-
-		let id x = x
-		let print_triple (x, y, z) = string_of_int x ^ &quot; | (&quot; ^ string_of_int y ^ &quot;, &quot; ^ string_of_int z ^ &quot;)&quot;
-
-		let find h a b = Hashtbl.find (Hashtbl.find h a) b
-
-		let incr h a b v t =
-			try
-				let sub_h = Hashtbl.find h a in
-					Hash.incr ~v:(v) sub_h t;
-					Hash.incr ~v:(v) sub_h b
-			with Not_found -&gt;
-				let sub_h = Hashtbl.create 100 in
-					Hash.incr ~v:(v) sub_h t;
-					Hash.incr ~v:(v) sub_h b;
-					Hashtbl.add h a sub_h
-		let incr_s ?v:(v = 1.) h a b = incr h a b v s
-		let incr_i ?v:(v = 1.) h a b = incr h a b v i
-
-		let sum h t =
-			let s = Hashtbl.create 1000 in
-				let f k v =
-					let g l w =
-						if l &lt;&gt; t then Hash.incr ~v:(w) s l
-					in Hashtbl.iter g v
-				in Hashtbl.iter f h;
-				s
-		let sum_s h = sum h s
-		let sum_i h = sum h i
-
-		let normalize h1 h2 t =
-			let f k v =
-				let g l w =
-					if l &lt;&gt; t then Hashtbl.replace v l (w &#x2F;. Hashtbl.find h2 l)
-				in Hashtbl.iter g v
-			in Hashtbl.iter f h1
-		let normalize_s h1 h2 = normalize h1 h2 s
-		let normalize_i h1 h2 = normalize h1 h2 i
-
-		let estimate h1 h2 h3 t =
-			let f k v =
-				let g l w =
-					if l &lt;&gt; t then Hashtbl.replace v l (find h2 k l &#x2F;. Hashtbl.find h3 l)
-				in Hashtbl.iter g v
-			in Hashtbl.iter f h1
-		let estimate_s h1 h2 h3 = estimate h1 h2 h3 s
-		let estimate_i h1 h2 h3 = estimate h1 h2 h3 i
-
-		let print h a b c t =
-			let f k v =
-				print_string (a k ^ &quot;  :  &quot; ^ string_of_float (Hashtbl.find v t) ^ &quot;\n&quot;);
-				let g l w =
-					if l &lt;&gt; t then
-						print_string (&quot;\t\t&quot; ^ b l ^ &quot;  :  &quot; ^ string_of_float (c w) ^ &quot;\n&quot;)
-				in Hashtbl.iter g v
-			in Hashtbl.iter f h
-		let print_s h = print h id id id s
-		let print_i h = print h string_of_int print_triple id i
-
-		let print_sort m h a b c t =
-			let f k v =
-				print_string (a k ^ &quot;  :  &quot; ^ string_of_float (Hashtbl.find v t) ^ &quot;\n&quot;);
-				let g (l, w) =
-					if l &lt;&gt; t &amp;&amp; w &gt;= m then
-						print_string (&quot;\t\t&quot; ^ b l ^ &quot;  :  &quot; ^ string_of_float (c w) ^ &quot;\n&quot;)
-				in List.iter g (List.rev (Hash.sort v))
-			in Hashtbl.iter f h
-		let print_sort_s ?m:(m = 0.1) h = print_sort m h id id id s
-		let print_sort_i ?m:(m = 0.1) h = print_sort m h string_of_int print_triple id i
-		let print_sort_l_s ?m:(m = 0.1) h = print_sort m h id id (fun x -&gt; log x) s
-		let print_sort_l_i ?m:(m = 0.1) h = print_sort m h string_of_int print_triple (fun x -&gt; log x) i
-
-		let print_sum h a t =
-			let s = sum h t in
-				let f k v =
-					print_string (a k ^ &quot;  :  &quot; ^ string_of_float v ^ &quot;\n&quot;)
-				in Hashtbl.iter f s
-		let print_sum_s h = print_sum h id s
-		let print_sum_i h = print_sum h print_triple i
-	end;;
+(* Chargement des modules. *)
+#use &quot;modules\\line.ml&quot;;;
+#use &quot;modules\\hash.ml&quot;;;
+#use &quot;modules\\hash2.ml&quot;;;
 
 
 (* Dossier de travail *)
@@ -156,8 +40,8 @@ and s = open_out (folder ^ en_fr)
 and i = ref 0 in
 	let rec parcours file =
 		try
-			let e = Line.preproc en
-			and f = Line.preproc fr in
+			let e = Line.preprocess en
+			and f = Line.preprocess fr in
 				let n = Line.length e in
 					if n &gt; 0 &amp;&amp; n &lt;= 15 &amp;&amp; abs(Line.length f - n) &lt;= n &#x2F; 6 + 1 then (
 							if pos_out s &lt;&gt; 0 then output_string s &quot;\n&quot;;
@@ -314,7 +198,7 @@ let folder = &quot;D:\\TIPE\\corpus\\&quot;
 and en_fr = &quot;en_fr.align2.txt&quot;
 and fr_en = &quot;fr_en.align2.txt&quot;
 and ai = &quot;align.txt&quot;
-and af = &quot;alignf.txt&quot;
+and af = &quot;alignff.txt&quot;
 and jump f = ignore (input_line f, input_line f)
 and terminate time = print_string (&quot;tâche réalisée en &quot; ^ string_of_float (Sys.time() -. time) ^ &quot; secondes.&quot;);;
 
@@ -346,16 +230,55 @@ and so = open_out (folder ^ af) in
 		try
 			let en = input_line fi
 			and fr = input_line fi
-			and e, m = Line.words_w fi
-			and f, n = Line.words_w fi in
-				let s = ref &quot;&quot; in
-					if pos_out so &lt;&gt; 0 then output_string so &quot;\n&quot;;
-					for i = 0 to m - 1 do
-						let j = int_of_string e.(i) in
-							if j &lt;&gt; -1 then
-								if int_of_string f.(j) = i then s := !s ^ (if !s = &quot;&quot; then en ^ &quot;\n&quot; ^ fr ^ &quot;\n&quot; else &quot; &quot;) ^ string_of_int i ^ &quot;.&quot; ^ string_of_int j
-					done;
-			output_string so !s;
+			and e, m = Line.numbers fi
+			and f, n = Line.numbers fi in
+				let s = ref &quot;&quot;
+				and l = ref []
+				and t = Array.make_matrix m n false
+				and e_a = Array.make m false
+				and f_a = Array.make n false in
+					let add (i, j) =
+						s := !s ^ string_of_int i ^ &quot;.&quot; ^ string_of_int j ^ &quot; &quot;;
+						l := (i, j) :: !l;
+						e_a.(i) &lt;- true;
+						f_a.(j) &lt;- true
+					in
+						(* intersection *)
+						for i = 0 to m - 1 do
+							let j = e.(i) in
+								if j &lt;&gt; -1 &amp;&amp; f.(j) = i then add (i, j)
+						done;
+						(* voisin *)
+						let voisin (i, j) =
+							let aux k =
+								let s1 = i + k
+								and s2 = j + k in
+									if s1 &gt;= 0 &amp;&amp; s1 &lt; m &amp;&amp; not e_a.(s1) then (
+										let a1 = e.(s1) in
+											if a1 &lt;&gt; -1 &amp;&amp; abs (a1 - j) &lt;= 1 &amp;&amp; not t.(s1).(a1) then add (s1, a1);
+											for z = j - 1 to j + 1 do if z &gt;= 0 &amp;&amp; z &lt; n then t.(s1).(z) &lt;- true done);
+									if s2 &gt;= 0 &amp;&amp; s2 &lt; n &amp;&amp; not f_a.(s2) then (
+										let a2 = f.(s2) in
+											if a2 &lt;&gt; -1 &amp;&amp; abs (a2 - i) &lt;= 1 &amp;&amp; not t.(a2).(s2) then add (a2, s2);
+											for z = i - 1 to i + 1 do if z &gt;= 0 &amp;&amp; z &lt; m then t.(z).(s2) &lt;- true done)
+							in aux 1; aux (-1)
+						in	while !l &lt;&gt; [] do
+							let c = List.hd !l in
+								l := List.tl !l;
+								voisin c
+						done;
+						(* non alignés *)
+						for i = 0 to m - 1 do
+							if not e_a.(i) then (
+								let a = e.(i) in
+									if a &lt;&gt; -1 then add (i, a))
+						done;
+						for j = 0 to n - 1 do
+							if not f_a.(j) then (
+								let b = f.(j) in
+									if b &lt;&gt; -1 then add (b, j))
+						done;
+				output_string so ((if pos_out so = 0 then &quot;&quot; else &quot;\n&quot;) ^ en ^ &quot;\n&quot; ^ fr ^ &quot;\n&quot; ^ String.trim !s);
 			parcours fi
 		with End_of_file -&gt; ()
 	in parcours fi;
@@ -371,8 +294,6 @@ terminate time;;</code></pre>
 			$(function() {
 				$code = $('#code');
 				var time	= new Date();
-
-				// $code.contents().each(function())	
 
 				function replace (dom, replacements) {
 					var text = '';
@@ -406,21 +327,23 @@ terminate time;;</code></pre>
 					'(""|"([^"]|[^"\\\\]\\\\")*([^"\\\\]|\\\\\\\\)")' : '<span class="string">$1</span>'
 				});
 				replace($code, {
-					// mots-clé
-					'(while |do |done|[\\s\\n]in |if |then|else|try|match|with|struct|end)'	: '<span class="keyword">$1</span>',
 					// définitions de fonction avec paramètres implicites
-					'\\?([\\w])+\\:\\((\\w) \\= (.+)\\) ([\\w ]+) '			: '?<span class="arguments">$1</span>:(<span class="function">$2</span> = $3) <span class="arguments">$4</span> ',
+					'\\?([\\w])+\\:\\((\\w) \\= (.+)\\) ([\\w, \\(\\)]+) \\=' : function (m, p1, p2, p3, p4, o, s) { return '<span class="operator">?</span><span class="argument">' + p1 + '</span>:(<span class="var">' + p2 + '</span> = ' + p3 + ') ' + p4.replace(/(\w+)/g, '<span class="argument">$1</span>') + ' =' },
 					// définitions de fonction
-					'(let |let rec |and )(\\w+) ([\\w ]*) '					: '<span class="keyword">$1</span><span class="function">$2</span> <span class="arguments">$3</span> ',
+					'(let rec|let|and) (\\w+) ([\\w, \\(\\)]+)' : function (match, p1, p2, p3, o, s) { return '<span class="keyword">' + p1 + '</span> <span class="function">' + p2 + '</span> ' + p3.replace(/(\w+)/g, '<span class="argument">$1</span>') },
 					// définitions de variable
-					'(let |let rec |and |for )(\\w+)'						: '<span class="keyword">$1</span><span class="function">$2</span>',
-					// listes et tableaux vides
-					'(\\(\\)|\\[\\])'										: '<span class=brackets>$1</span>',
+					'(let rec|let|and|for) ([\\w, ]+)' : function (m, p1, p2, o, s) { return '<span class="keyword">' + p1 + '</span> ' + p2.replace(/(\w+)/g, '<span class="var">$1</span>') },
+					// mots-clé
+					'(while|done|do|[\\s\\n]in(?=[ \\n])|if|then|else|try|match|with|struct|sig|end)' : '<span class="keyword">$1</span>',
 					// librairie
-					'([A-Z]\\w+)(?=\\.\\w+)'								: '<span class="lib">$1</span>',
-					'(module|#load)'										: '<span class="module">$1</span>'
+					'([A-Z]\\w+)(?=\\.\\w+)' : '<span class="lib">$1</span>',
+					// module
+					'module ([A-Z]\\w+)' : '<span class="special">module</span> <span class="module">$1</span>',
+					'(#(load|cd|use))' : '<span class="special">$1</span>'
 				});
 				replace($code, {
+					// listes et tableaux vides
+					'(\\(\\)|\\[\\])'										: '<span class=brackets>$1</span>',
 					// fonctions implicites
 					'fun '																			: '<span class="function">fun</span> ',
 					// opérateurs

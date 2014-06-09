@@ -9,83 +9,41 @@
 	</head>
 
 	<body>
-		<h1>Fichier OCaml : `D:\TIPE\tipe01`</h1>
+		<h1>Fichier OCaml : `D:\TIPE\modules/config`</h1>
 		<a href="./index.html">Retour à l'accueil</a><br><br>
-		<pre><code id="code">let rec is_in_vect a = function
-	[] -&gt; false
-	| t::q -&gt; (t = a) || (is_in_vect a q);;
-let words s n = 
-	let rec aux s a = match s with
-		[] -&gt; a
-		| (e, f)::q -&gt; let rec insere = function
-			[] -&gt; a
-			| t::r -&gt; if not(is_in_vect t a) then t::(insere r) else insere r
-		in aux q (insere (Array.to_list (if n = 1 then e else f)))
-	in Array.of_list (aux s []);;
+		<pre><code id="code">(* Dépendances : [Pervasives, Sys] *)
+(* Fichier de configuration *)
 
-let e1 = [|&quot;the&quot;,0; &quot;house&quot;,1|]
-and e2 = [|&quot;the&quot;,0; &quot;car&quot;,2|]
-and e3 = [|&quot;a&quot;,3; &quot;car&quot;,2|]
-and f1 = [|&quot;la&quot;,0; &quot;maison&quot;,1|]
-and f2 = [|&quot;la&quot;,0; &quot;voiture&quot;,2|]
-and f3 = [|&quot;une&quot;,3; &quot;voiture&quot;,2|];;
-
-let s = [e1, f1; e2, f2; e3, f3];;
-
-let s = Array.of_list s
-and e = words s 1
-and f = words s 2;;
-
-let l = Array.length s
-and m = Array.length e
-and n = Array.length f;;
-
-let mf = float_of_int m
-and nf = float_of_int n;;
-
-let p = Array.make_matrix m n 0. and z = 1. &#x2F;. nf;;
-(* Uniformalisation de p *)
-for i = 0 to l - 1 do
-	let es, fs = s.(i) in
-		for j = 0 to Array.length es - 1 do
-			for k = 0 to Array.length fs - 1 do
-				let a = snd (es.(j)) and b = snd (fs.(k)) in
-					p.(a).(b) &lt;- z
-			done
-		done
-done;p;;
-
-for z = 1 to 20 do
-
-let c = Array.make_matrix m n 0.
-and t = Array.make n 0. in
-
-for i = 0 to l - 1 do
-	let es, fs = s.(i) in
-		let mp = Array.length es - 1
-		and np = Array.length fs - 1 in
-		(* Normalisation *)
-		for j = 0 to mp do
-			let ts = ref 0. in
-			for k = 0 to np do
-				let a = snd (es.(j)) and b = snd (fs.(k)) in
-					ts := !ts +. p.(a).(b)
-			done;
-			for k = 0 to np do
-				let a = snd (es.(j)) and b = snd (fs.(k)) in
-					c.(a).(b) &lt;- c.(a).(b) +. p.(a).(b) &#x2F;. !ts;
-					t.(b) &lt;- t.(b) +. p.(a).(b) &#x2F;. !ts
-			done
-		done
-done;
-for j = 0 to m - 1 do
-	for k = 0 to n - 1 do
-		p.(j).(k) &lt;- c.(j).(k) &#x2F;. t.(k)
-	done
-done
-
-done;
-p;;</code></pre>
+module Config =
+	struct
+		let en = &quot;files\\en.src&quot;
+		let fr = &quot;files\\fr.src&quot;
+		let en_fr = &quot;files\\en_fr.src&quot;
+		let open_src () =
+			let r1, r2, r3 = open_in en, open_in fr, open_out en_fr in
+				r1, r2, r3, fun () -&gt; close_out r3; close_in r2; close_in r1
+		let en_a = &quot;files\\en.ali&quot;
+		let fr_a = &quot;files\\fr.ali&quot;
+		let en_fr_a = &quot;files\\en_fr.ali&quot;
+		let en_fr_v_a = &quot;files\\en_fr_voisin.ali&quot;
+		let en_fr_i_a = &quot;files\\en_fr_inter.ali&quot;
+		let open_ali () =
+			let r1, r2, r3, r4, r5 = open_in en_a, open_in fr_a, open_out en_fr_i_a, open_out en_fr_v_a, open_out en_fr_a in
+				r1, r2, r3, r4, r5, fun () -&gt; close_out r5; close_out r4; close_out r3; close_in r2; close_in r1
+		let time ?n:(n = &quot;t\226che&quot;) () =
+			let t = Sys.time() in
+				(fun () -&gt; print_string (n ^ &quot; r\233alis\233e en &quot; ^ string_of_float (Sys.time() -. t) ^ &quot; secondes.&quot;))
+		let rec parcours f g h =
+			try
+				g();
+				parcours f g h
+			with End_of_file -&gt; h f
+		let read_again f = seek_in f 0
+		let output f s = output_string f ((if pos_out f = 0 then &quot;&quot; else &quot;\n&quot;) ^ s)
+		let create () = Hashtbl.create 1000, Hashtbl.create 1000
+		let null v i = if i = -1 then &quot;&quot; else v.(i)
+		let jump f = ignore (input_line f); ignore (input_line f);	f
+	end</code></pre>
 
 		<script>
 			/*! jQuery v2.1.1 | (c) 2005, 2014 jQuery Foundation, Inc. | jquery.org/license */

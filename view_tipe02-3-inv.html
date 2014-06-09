@@ -9,83 +9,246 @@
 	</head>
 
 	<body>
-		<h1>Fichier OCaml : `D:\TIPE\tipe01`</h1>
+		<h1>Fichier OCaml : `D:\TIPE\tipe02-3-inv`</h1>
 		<a href="./index.html">Retour à l'accueil</a><br><br>
-		<pre><code id="code">let rec is_in_vect a = function
-	[] -&gt; false
-	| t::q -&gt; (t = a) || (is_in_vect a q);;
-let words s n = 
-	let rec aux s a = match s with
-		[] -&gt; a
-		| (e, f)::q -&gt; let rec insere = function
-			[] -&gt; a
-			| t::r -&gt; if not(is_in_vect t a) then t::(insere r) else insere r
-		in aux q (insere (Array.to_list (if n = 1 then e else f)))
-	in Array.of_list (aux s []);;
+		<pre><code id="code">(* Chargement des librairies Ocaml. *)
+#load &quot;str.cma&quot;;;
 
-let e1 = [|&quot;the&quot;,0; &quot;house&quot;,1|]
-and e2 = [|&quot;the&quot;,0; &quot;car&quot;,2|]
-and e3 = [|&quot;a&quot;,3; &quot;car&quot;,2|]
-and f1 = [|&quot;la&quot;,0; &quot;maison&quot;,1|]
-and f2 = [|&quot;la&quot;,0; &quot;voiture&quot;,2|]
-and f3 = [|&quot;une&quot;,3; &quot;voiture&quot;,2|];;
+(* Changement du dossier de travail. *)
+#cd &quot;D:\\TIPE\\&quot;;;
 
-let s = [e1, f1; e2, f2; e3, f3];;
+(* Chargement des modules. *)
+#use &quot;modules\\line.ml&quot;;;
+#use &quot;modules\\hash.ml&quot;;;
+#use &quot;modules\\hash2.ml&quot;;;
+#use &quot;modules\\config.ml&quot;;;
 
-let s = Array.of_list s
-and e = words s 1
-and f = words s 2;;
 
-let l = Array.length s
-and m = Array.length e
-and n = Array.length f;;
+(* Traitement de l&#39;extrait de corpus : on ne va garder que les phrases comptant moins de 15 mots et dont la différence de mot, entre phrase anglaise et française, ne soit pas trop grande. On enlève, de plus, tous les symboles de ponctuations et chiffres que contiennent ces phrases. *)
+let time = Config.time ~n:(&quot;traitement&quot;) ()
+and f_en, f_fr, f_en_fr, close = Config.open_src ()
+and i = ref 0 in
+	let f () =
+			let e, m = Line.preprocess f_en
+			and f, n = Line.preprocess f_fr in
+				let v = (m + n) &#x2F; 2 in
+					if v &gt; 0 &amp;&amp; v &lt;= 15 &amp;&amp; abs (m - n) &lt;= v &#x2F; 6 + 1 then
+						begin
+							Config.output f_en_fr (e ^ &quot;\n&quot; ^ f);
+							incr i
+						end
+	in Config.parcours f_en f ignore;
+	print_string (string_of_int !i ^ &quot; paires de phrases traitées.\n&quot;);
+	close ();
+	time ();;
 
-let mf = float_of_int m
-and nf = float_of_int n;;
 
-let p = Array.make_matrix m n 0. and z = 1. &#x2F;. nf;;
-(* Uniformalisation de p *)
-for i = 0 to l - 1 do
-	let es, fs = s.(i) in
-		for j = 0 to Array.length es - 1 do
-			for k = 0 to Array.length fs - 1 do
-				let a = snd (es.(j)) and b = snd (fs.(k)) in
-					p.(a).(b) &lt;- z
+(* Ouverture du corpus généré à l&#39;étape précédente. *)
+let corpus = open_in Config.en_fr
+(* Définition des paramètres du modèle IBM 2 : p est la probabilité qu&#39;un mot soit aligné à un autre; q est le paramètre de distorsion. Tous deux représentés par des `Hash2`, tables de hachages à 2 dimensions. *)
+and p, q = Config.create ();;
+
+
+(* Initialisation des paramètres : On remplit les `Hash2` p et q avec les probabilités obtenues par comptage des mots des paires de phrases du corpus, puis normalisation. *)
+let time = Config.time ~n:(&quot;initialisation&quot;) ()
+and n1, n2 = Config.create () in
+	let f () =
+		let _, f, n = Line.words corpus
+		and _, e, m = Line.words corpus in
+			for i = 0 to m - 1 do
+				for j = -1 to n - 1 do
+					let y1 = Config.null f j
+					and y2 = (j, m, n) in
+						Hash2.incr_s p e.(i) y1;
+						Hash2.incr_i q i y2;
+						Hash.incr n1 y1;
+						Hash.incr n2 y2
+				done
 			done
-		done
-done;p;;
+	in Config.parcours corpus f Config.read_again;
+	Hash2.normalize_s p n1;
+	Hash2.normalize_i q n2;
+	time ();;
 
-for z = 1 to 20 do
 
-let c = Array.make_matrix m n 0.
-and t = Array.make n 0. in
+(* Première estimation de p : Espérance-Maximisation appliqué au modèle IBM-1. *)
+let time = Config.time ~n:(&quot;estimation (IBM-1)&quot;) () in
+	for z = 1 to 15 do
+		(* Calcul de la prochaine valeur r, étant donné p. *)
+		let r, n1 = Config.create () in
+		let f () =
+			let _, f, n = Line.words corpus
+			and _, e, m = Line.words corpus in
+				for i = 0 to m - 1 do
+					let t = Hashtbl.create 50 in
+						for j = -1 to n - 1 do
+							let x = e.(i) in
+								Hash.incr ~v:(Hash2.find p x (Config.null f j)) t x
+						done;
+						for j = -1 to n - 1 do
+							let x = e.(i)
+							and y = Config.null f j in
+								let v = Hash2.find p x y &#x2F;. Hashtbl.find t x in
+									Hash2.incr_s ~v:(v) r x y;
+									Hash.incr ~v:(v) n1 y
+						done
+				done
+		in Config.parcours corpus f Config.read_again;
+		(* Nouvelle valeur de p, obtenue par normalisation de r. *)
+		Hash2.estimate_s p r n1
+	done;
+	time ();;
 
-for i = 0 to l - 1 do
-	let es, fs = s.(i) in
-		let mp = Array.length es - 1
-		and np = Array.length fs - 1 in
-		(* Normalisation *)
-		for j = 0 to mp do
-			let ts = ref 0. in
-			for k = 0 to np do
-				let a = snd (es.(j)) and b = snd (fs.(k)) in
-					ts := !ts +. p.(a).(b)
+
+(* Espérance-Maximisation appliqué aux paramètres p et q (IBM-2). *)
+let time = Config.time ~n:(&quot;estimation (IBM-2)&quot;) () in
+	for z = 1 to 10 do
+		(* Calcul des prochaines valeurs de r et s, étant donné p et q. *)
+		let r, n1 = Config.create ()
+		and s, n2 = Config.create () in
+			let f () =
+				let _, f, n = Line.words corpus
+				and _, e, m = Line.words corpus in
+					for i = 0 to m - 1 do
+						let t = Hashtbl.create 50 in
+							for j = -1 to n - 1 do
+								let x = e.(i) in
+									Hash.incr ~v:(Hash2.find q i (j, m, n) *. Hash2.find p x (Config.null f j)) t x
+							done;
+							for j = -1 to n - 1 do
+								let x = e.(i)
+								and y1 = Config.null f j
+								and y2 = (j, m, n) in
+									let v = Hash2.find q i y2 *. Hash2.find p x y1 &#x2F;. Hashtbl.find t x in
+										Hash2.incr_s ~v:(v) r x y1;
+										Hash2.incr_i ~v:(v) s i y2;
+										Hash.incr ~v:(v) n1 y1;
+										Hash.incr ~v:(v) n2 y2
+							done
+					done
+			in Config.parcours corpus f Config.read_again;
+			(* Nouvelle valeur de p et q, d&#39;après r et s. *)
+			Hash2.estimate_s p r n1;
+			Hash2.estimate_i q s n2
+	done;
+	time ();;
+
+
+(* Alignement des phrases : On cherche à aligner une phrase anglaise à sa paire française. Pour chaque mot de la phrase, on prend le mot de la paire qui maximise le produit de p avec q. *)
+let time = Config.time ~n:(&quot;alignement fr -&gt; en&quot;) ()
+and f_a = open_out Config.fr_a in
+	let f () =
+		let fr, f, n = Line.words corpus
+		and en, e, m = Line.words corpus
+		and s = ref &quot;&quot; in
+			for i = 0 to m - 1 do
+				let x = e.(i)
+				and k = ref (-1) in
+					let v = ref (Hash2.find q i (!k, m, n) *. Hash2.find p x &quot;&quot;) in
+						for j = 0 to n - 1 do
+							let u = Hash2.find q i (j, m, n) *. Hash2.find p x f.(j) in
+								if u &gt; !v then (v := u; k := j)
+						done;
+					s := !s ^ (if i = 0 then en ^ &quot;\n&quot; ^ fr ^ &quot;\n&quot; else &quot; &quot;) ^ string_of_int !k
 			done;
-			for k = 0 to np do
-				let a = snd (es.(j)) and b = snd (fs.(k)) in
-					c.(a).(b) &lt;- c.(a).(b) +. p.(a).(b) &#x2F;. !ts;
-					t.(b) &lt;- t.(b) +. p.(a).(b) &#x2F;. !ts
-			done
-		done
-done;
-for j = 0 to m - 1 do
-	for k = 0 to n - 1 do
-		p.(j).(k) &lt;- c.(j).(k) &#x2F;. t.(k)
-	done
-done
+			Config.output f_a !s
+	in Config.parcours corpus f ignore;
+	close_out f_a;
+	close_in corpus;
+	time ();;
 
-done;
-p;;</code></pre>
+
+(* On fait de même en inversant les rôles des phrases françaises et anglaises, pour obtenir un alignement fr -&gt; en ... *)
+
+
+(* Fusion des fichiers d&#39;alignement *)
+let f1 = open_in (folder ^ en_fr)
+and f2 = open_in (folder ^ fr_en)
+and s = open_out (folder ^ ai) in
+	let rec parcours f1 f2 =
+		try
+			jump f2;
+			output_string s (input_line f1 ^ &quot;\n&quot;);
+			output_string s (input_line f1 ^ &quot;\n&quot;);
+			let a1 = input_line f1
+			and a2 = input_line f2 in
+				output_string s (a1 ^ &quot;\n&quot; ^ a2 ^ &quot;\n&quot;);
+			parcours f1 f2
+		with End_of_file -&gt; ()
+	in parcours f1 f2;
+close_out s;
+close_in f2;
+close_in f1;;
+
+
+(* Alignement final : On va ici combiner les alignements obtenues précédemment, en appliquant une heuristique. On prend d&#39;abord l&#39;intersection des alignements, qui donne les alignements les plus sûrs. Puis on s&#39;intéresse dans l&#39;union aux alignements voisins. Enfin, pour chaque mot non aligné on ajoute les éventuels alignements restants. *)
+let time = Config.time ~n:(&quot;alignement final&quot;) ()
+and f_en, f_fr, f_en_fr_i, f_en_fr, close = Config.open_ali () in
+	let f () =
+		let en = input_line f_en
+		and fr = input_line f_en
+		and e, m = Line.numbers f_en
+		and f, n = Line.numbers (Config.jump f_fr)
+		(* Chaîne contenant la séquence des alignements finaux. *)
+		and s = ref &quot;&quot;
+		(* Liste des alignements, dont les voisins sont à tester. *)
+		and l = ref [] in
+			(* Matrices des alignements faits entre paire de phrases. *)
+			let t = Array.make_matrix m n false
+			(* Tableaux des états des mots d&#39;une phrase. *)
+			and e_a = Array.make m false
+			and f_a = Array.make n false in
+				let add (i, j) =
+					s := !s ^ (if !s = &quot;&quot; then &quot;&quot; else &quot; &quot;) ^ string_of_int i ^ &quot;.&quot; ^ string_of_int j;
+					l := (i, j) :: !l;
+					e_a.(i) &lt;- true;
+					f_a.(j) &lt;- true
+				in
+					(* intersection *)
+					for i = 0 to m - 1 do
+						let j = e.(i) in
+							if j &lt;&gt; -1 &amp;&amp; f.(j) = i then add (i, j)
+					done;
+					Config.output f_en_fr_i (en ^ &quot;\n&quot; ^ fr ^ &quot;\n&quot; ^ !s);
+					(* voisin *)
+					let voisin (i, j) =
+						let g k =
+							let s1 = i + k
+							and s2 = j + k in
+								if s1 &gt;= 0 &amp;&amp; s1 &lt; m &amp;&amp; not e_a.(s1) then (
+								(* la position s1 est valide et le mot à cet endroit n&#39;est pas déjà aligné *)
+									let a1 = e.(s1) in
+										(* on teste son alignement, si c&#39;est bien un voisin on l&#39;ajoute *)
+										if a1 &lt;&gt; -1 &amp;&amp; abs (a1 - j) &lt;= 1 &amp;&amp; not t.(s1).(a1) then add (s1, a1);
+										(* on enregistre les positions testés. *)
+										for z = j - 1 to j + 1 do if z &gt;= 0 &amp;&amp; z &lt; n then t.(s1).(z) &lt;- true done);
+								if s2 &gt;= 0 &amp;&amp; s2 &lt; n &amp;&amp; not f_a.(s2) then (
+									let a2 = f.(s2) in
+										if a2 &lt;&gt; -1 &amp;&amp; abs (a2 - i) &lt;= 1 &amp;&amp; not t.(a2).(s2) then add (a2, s2);
+										for z = i - 1 to i + 1 do if z &gt;= 0 &amp;&amp; z &lt; m then t.(z).(s2) &lt;- true done)
+						in g 1; g (-1)
+					in	while !l &lt;&gt; [] do
+						let c = List.hd !l in
+							l := List.tl !l;
+							voisin c
+					done;
+					(* non alignés *)
+					for i = 0 to m - 1 do
+						if not e_a.(i) then (
+						(* le mot n&#39;est pas aligné *)
+							let a = e.(i) in
+								(* s&#39;il existe un alignement, on l&#39;ajoute *)
+								if a &lt;&gt; -1 then add (i, a))
+					done;
+					for j = 0 to n - 1 do
+						if not f_a.(j) then (
+							let b = f.(j) in
+								if b &lt;&gt; -1 then add (b, j))
+					done;
+			Config.output f_en_fr (en ^ &quot;\n&quot; ^ fr ^ &quot;\n&quot; ^ !s)
+	in Config.parcours f_en f ignore;
+	close ();
+	time ();;</code></pre>
 
 		<script>
 			/*! jQuery v2.1.1 | (c) 2005, 2014 jQuery Foundation, Inc. | jquery.org/license */

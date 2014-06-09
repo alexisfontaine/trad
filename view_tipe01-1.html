@@ -4,7 +4,7 @@
 		<meta charset="utf-8">
 		<title>TIPE</title>
 		<style type="text/css">
-			body{padding:5px 10px}a{color:#000}html,body,pre{display:block;position:relative;width:100%;margin:0;box-sizing:border-box;font-family:Consolas,monospace}pre{padding-left:55px;background:#fcfcfc;font-size:15px}code{position:relative;box-sizing:border-box;display:inline-block;width:100%;padding:10px;border-left:1px solid #eee;color:#46565b;line-height:20px;overflow-wrap:break-word}.comment,.brackets{color:#93a1a1}.operator{color:#000}.lib{font-style:italic}.function{color:#c92c2c}.arguments{color:#b58900}.keyword{color:#1990b8}.number{color:#9600ff}.string{color:#2f9c0a}.line{position:absolute;left:-45px;display:block;color:#bbb}.module{font-style:italic;color:#6c00ff}
+			body{padding:5px 10px}a{color:#000}html,body,pre{display:block;position:relative;width:100%;margin:0;box-sizing:border-box;font-family:Consolas,monospace}pre{padding-left:55px;background:#fcfcfc;font-size:15px}code{position:relative;box-sizing:border-box;display:inline-block;width:100%;padding:10px;border-left:1px solid #eee;color:#46565b;line-height:20px;overflow-wrap:break-word}.comment,.brackets{color:#93a1a1}.operator{color:#000}.lib{font-style:italic}.var,.function{color:#c92c2c}.argument,.module{color:#b58900}.keyword{color:#1990b8}.number{color:#9600ff}.string{color:#2f9c0a}.line{position:absolute;left:-45px;display:block;color:#bbb}.special{font-style:italic;color:#6c00ff}
 		</style>
 	</head>
 
@@ -147,8 +147,6 @@ p;;
 				$code = $('#code');
 				var time	= new Date();
 
-				// $code.contents().each(function())	
-
 				function replace (dom, replacements) {
 					var text = '';
 					dom.contents().each(function() {
@@ -181,21 +179,23 @@ p;;
 					'(""|"([^"]|[^"\\\\]\\\\")*([^"\\\\]|\\\\\\\\)")' : '<span class="string">$1</span>'
 				});
 				replace($code, {
-					// mots-clé
-					'(while |do |done|[\\s\\n]in |if |then|else|try|match|with|struct|end)'	: '<span class="keyword">$1</span>',
 					// définitions de fonction avec paramètres implicites
-					'\\?([\\w])+\\:\\((\\w) \\= (.+)\\) ([\\w ]+) '			: '?<span class="arguments">$1</span>:(<span class="function">$2</span> = $3) <span class="arguments">$4</span> ',
+					'\\?([\\w])+\\:\\((\\w) \\= (.+)\\) ([\\w, \\(\\)]+) \\=' : function (m, p1, p2, p3, p4, o, s) { return '<span class="operator">?</span><span class="argument">' + p1 + '</span>:(<span class="var">' + p2 + '</span> = ' + p3 + ') ' + p4.replace(/(\w+)/g, '<span class="argument">$1</span>') + ' =' },
 					// définitions de fonction
-					'(let |let rec |and )(\\w+) ([\\w ]*) '					: '<span class="keyword">$1</span><span class="function">$2</span> <span class="arguments">$3</span> ',
+					'(let rec|let|and) (\\w+) ([\\w, \\(\\)]+)' : function (match, p1, p2, p3, o, s) { return '<span class="keyword">' + p1 + '</span> <span class="function">' + p2 + '</span> ' + p3.replace(/(\w+)/g, '<span class="argument">$1</span>') },
 					// définitions de variable
-					'(let |let rec |and |for )(\\w+)'						: '<span class="keyword">$1</span><span class="function">$2</span>',
-					// listes et tableaux vides
-					'(\\(\\)|\\[\\])'										: '<span class=brackets>$1</span>',
+					'(let rec|let|and|for) ([\\w, ]+)' : function (m, p1, p2, o, s) { return '<span class="keyword">' + p1 + '</span> ' + p2.replace(/(\w+)/g, '<span class="var">$1</span>') },
+					// mots-clé
+					'(while|done|do|[\\s\\n]in(?=[ \\n])|if|then|else|try|match|with|struct|sig|end)' : '<span class="keyword">$1</span>',
 					// librairie
-					'([A-Z]\\w+)(?=\\.\\w+)'								: '<span class="lib">$1</span>',
-					'(module|#load)'										: '<span class="module">$1</span>'
+					'([A-Z]\\w+)(?=\\.\\w+)' : '<span class="lib">$1</span>',
+					// module
+					'module ([A-Z]\\w+)' : '<span class="special">module</span> <span class="module">$1</span>',
+					'(#(load|cd|use))' : '<span class="special">$1</span>'
 				});
 				replace($code, {
+					// listes et tableaux vides
+					'(\\(\\)|\\[\\])'										: '<span class=brackets>$1</span>',
 					// fonctions implicites
 					'fun '																			: '<span class="function">fun</span> ',
 					// opérateurs
