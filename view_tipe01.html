@@ -9,7 +9,7 @@
 	</head>
 
 	<body>
-		<h1>Fichier OCaml : `D:\TIPE\tipe01`</h1>
+		<h2>Fichier OCaml : `D:\TIPE\tipe01`</h2>
 		<a href="./index.html">Retour à l'accueil</a><br><br>
 		<pre><code id="code">let rec is_in_vect a = function
 	[] -&gt; false
@@ -66,16 +66,16 @@ for i = 0 to l - 1 do
 		and np = Array.length fs - 1 in
 		(* Normalisation *)
 		for j = 0 to mp do
-			let ts = ref 0. in
-			for k = 0 to np do
-				let a = snd (es.(j)) and b = snd (fs.(k)) in
-					ts := !ts +. p.(a).(b)
-			done;
-			for k = 0 to np do
-				let a = snd (es.(j)) and b = snd (fs.(k)) in
-					c.(a).(b) &lt;- c.(a).(b) +. p.(a).(b) &#x2F;. !ts;
-					t.(b) &lt;- t.(b) +. p.(a).(b) &#x2F;. !ts
-			done
+			let a = snd es.(j)
+			and ts = ref 0. in
+				for k = 0 to np do
+						ts := !ts +. p.(a).(snd fs.(k))
+				done;
+				for k = 0 to np do
+					let b = snd fs.(k) in
+						c.(a).(b) &lt;- c.(a).(b) +. p.(a).(b) &#x2F;. !ts;
+						t.(b) &lt;- t.(b) +. p.(a).(b) &#x2F;. !ts
+				done
 		done
 done;
 for j = 0 to m - 1 do

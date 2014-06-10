@@ -9,7 +9,7 @@
 	</head>
 
 	<body>
-		<h1>Fichier OCaml : `D:\TIPE\tipe02-3-inv`</h1>
+		<h2>Fichier OCaml : `D:\TIPE\tipe02-3-inv`</h2>
 		<a href="./index.html">Retour à l'accueil</a><br><br>
 		<pre><code id="code">(* Chargement des librairies Ocaml. *)
 #load &quot;str.cma&quot;;;
@@ -31,7 +31,7 @@ and i = ref 0 in
 	let f () =
 			let e, m = Line.preprocess f_en
 			and f, n = Line.preprocess f_fr in
-				let v = (m + n) &#x2F; 2 in
+				let v = max m n in
 					if v &gt; 0 &amp;&amp; v &lt;= 15 &amp;&amp; abs (m - n) &lt;= v &#x2F; 6 + 1 then
 						begin
 							Config.output f_en_fr (e ^ &quot;\n&quot; ^ f);
@@ -80,18 +80,17 @@ let time = Config.time ~n:(&quot;estimation (IBM-1)&quot;) () in
 			let _, f, n = Line.words corpus
 			and _, e, m = Line.words corpus in
 				for i = 0 to m - 1 do
-					let t = Hashtbl.create 50 in
+					let x = e.(i)
+					and t = ref 0. in
 						for j = -1 to n - 1 do
-							let x = e.(i) in
-								Hash.incr ~v:(Hash2.find p x (Config.null f j)) t x
+							t := !t +. Hash2.find p x (Config.null f j)
 						done;
 						for j = -1 to n - 1 do
-							let x = e.(i)
-							and y = Config.null f j in
-								let v = Hash2.find p x y &#x2F;. Hashtbl.find t x in
+							let y = Config.null f j in
+								let v = Hash2.find p x y &#x2F;. !t in
 									Hash2.incr_s ~v:(v) r x y;
 									Hash.incr ~v:(v) n1 y
-						done
+					done
 				done
 		in Config.parcours corpus f Config.read_again;
 		(* Nouvelle valeur de p, obtenue par normalisation de r. *)
@@ -110,16 +109,15 @@ let time = Config.time ~n:(&quot;estimation (IBM-2)&quot;) () in
 				let _, f, n = Line.words corpus
 				and _, e, m = Line.words corpus in
 					for i = 0 to m - 1 do
-						let t = Hashtbl.create 50 in
+						let x = e.(i)
+						and t = ref 0. in
 							for j = -1 to n - 1 do
-								let x = e.(i) in
-									Hash.incr ~v:(Hash2.find q i (j, m, n) *. Hash2.find p x (Config.null f j)) t x
+								 t := !t +. Hash2.find q i (j, m, n) *. Hash2.find p x (Config.null f j)
 							done;
 							for j = -1 to n - 1 do
-								let x = e.(i)
-								and y1 = Config.null f j
+								let y1 = Config.null f j
 								and y2 = (j, m, n) in
-									let v = Hash2.find q i y2 *. Hash2.find p x y1 &#x2F;. Hashtbl.find t x in
+									let v = Hash2.find q i y2 *. Hash2.find p x y1 &#x2F;. !t in
 										Hash2.incr_s ~v:(v) r x y1;
 										Hash2.incr_i ~v:(v) s i y2;
 										Hash.incr ~v:(v) n1 y1;
@@ -142,14 +140,14 @@ and f_a = open_out Config.fr_a in
 		and en, e, m = Line.words corpus
 		and s = ref &quot;&quot; in
 			for i = 0 to m - 1 do
-				let x = e.(i)
-				and k = ref (-1) in
-					let v = ref (Hash2.find q i (!k, m, n) *. Hash2.find p x &quot;&quot;) in
+				let x = e.(i) in
+					let k = ref (-1)
+					and v = ref (Hash2.find q i (-1, m, n) *. Hash2.find p x &quot;&quot;) in
 						for j = 0 to n - 1 do
 							let u = Hash2.find q i (j, m, n) *. Hash2.find p x f.(j) in
 								if u &gt; !v then (v := u; k := j)
 						done;
-					s := !s ^ (if i = 0 then en ^ &quot;\n&quot; ^ fr ^ &quot;\n&quot; else &quot; &quot;) ^ string_of_int !k
+						s := !s ^ (if i = 0 then en ^ &quot;\n&quot; ^ fr ^ &quot;\n&quot; else &quot; &quot;) ^ string_of_int !k
 			done;
 			Config.output f_a !s
 	in Config.parcours corpus f ignore;
@@ -163,7 +161,7 @@ and f_a = open_out Config.fr_a in
 
 (* Alignement final : On va ici combiner les alignements obtenues précédemment, en appliquant une heuristique. On prend d&#39;abord l&#39;intersection des alignements, qui donne les alignements les plus sûrs. Puis on s&#39;intéresse dans l&#39;union aux alignements voisins. Enfin, pour chaque mot non aligné on ajoute les éventuels alignements restants. *)
 let time = Config.time ~n:(&quot;alignement final&quot;) ()
-and f_en, f_fr, f_en_fr_i, f_en_fr, close = Config.open_ali () in
+and f_en, f_fr, f_en_fr_i, f_en_fr_v, f_en_fr, close = Config.open_ali () in
 	let f () =
 		let en = input_line f_en
 		and fr = input_line f_en
@@ -184,13 +182,13 @@ and f_en, f_fr, f_en_fr_i, f_en_fr, close = Config.open_ali () in
 					e_a.(i) &lt;- true;
 					f_a.(j) &lt;- true
 				in
-					(* intersection *)
+				(* intersection *)
 					for i = 0 to m - 1 do
 						let j = e.(i) in
 							if j &lt;&gt; -1 &amp;&amp; f.(j) = i then add (i, j)
 					done;
 					Config.output f_en_fr_i (en ^ &quot;\n&quot; ^ fr ^ &quot;\n&quot; ^ !s);
-					(* voisin *)
+				(* voisin *)
 					let voisin (i, j) =
 						let g k =
 							let s1 = i + k
@@ -212,7 +210,8 @@ and f_en, f_fr, f_en_fr_i, f_en_fr, close = Config.open_ali () in
 							l := List.tl !l;
 							voisin c
 					done;
-					(* non alignés *)
+					Config.output f_en_fr_v (en ^ &quot;\n&quot; ^ fr ^ &quot;\n&quot; ^ !s);
+				(* non alignés *)
 					for i = 0 to m - 1 do
 						if not e_a.(i) then (
 						(* le mot n&#39;est pas aligné *)
