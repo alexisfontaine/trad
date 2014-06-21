@@ -193,16 +193,16 @@ and f_en, f_fr, f_en_fr_i, f_en_fr_v, f_en_fr, close = Config.open_ali () in
 						let g k =
 							let s1 = i + k
 							and s2 = j + k in
-								if s1 &gt;= 0 &amp;&amp; s1 &lt; m &amp;&amp; not e_a.(s1) then (
+								if s1 &gt;= 0 &amp;&amp; s1 &lt; m then (
 								(* la position s1 est valide et le mot à cet endroit n&#39;est pas déjà aligné *)
 									let a1 = e.(s1) in
 										(* on teste son alignement, si c&#39;est bien un voisin on l&#39;ajoute *)
-										if a1 &lt;&gt; -1 &amp;&amp; abs (a1 - j) &lt;= 1 &amp;&amp; not t.(s1).(a1) then add (s1, a1);
+										if a1 &lt;&gt; -1 &amp;&amp; abs (a1 - j) &lt;= 1 &amp;&amp; not (e_a.(s1) &amp;&amp; f_a.(a1)) &amp;&amp; not t.(s1).(a1) then add (s1, a1);
 										(* on enregistre les positions testés. *)
 										for z = j - 1 to j + 1 do if z &gt;= 0 &amp;&amp; z &lt; n then t.(s1).(z) &lt;- true done);
 								if s2 &gt;= 0 &amp;&amp; s2 &lt; n &amp;&amp; not f_a.(s2) then (
 									let a2 = f.(s2) in
-										if a2 &lt;&gt; -1 &amp;&amp; abs (a2 - i) &lt;= 1 &amp;&amp; not t.(a2).(s2) then add (a2, s2);
+										if a2 &lt;&gt; -1 &amp;&amp; abs (a2 - i) &lt;= 1 &amp;&amp; not (e_a.(a2) &amp;&amp; f_a.(s2)) &amp;&amp; not t.(a2).(s2) then add (a2, s2);
 										for z = i - 1 to i + 1 do if z &gt;= 0 &amp;&amp; z &lt; m then t.(z).(s2) &lt;- true done)
 						in g 1; g (-1)
 					in	while !l &lt;&gt; [] do
@@ -217,12 +217,12 @@ and f_en, f_fr, f_en_fr_i, f_en_fr_v, f_en_fr, close = Config.open_ali () in
 						(* le mot n&#39;est pas aligné *)
 							let a = e.(i) in
 								(* s&#39;il existe un alignement, on l&#39;ajoute *)
-								if a &lt;&gt; -1 then add (i, a))
+								if a &lt;&gt; -1 &amp;&amp; not f_a.(a) then add (i, a))
 					done;
 					for j = 0 to n - 1 do
 						if not f_a.(j) then (
 							let b = f.(j) in
-								if b &lt;&gt; -1 then add (b, j))
+								if b &lt;&gt; -1 &amp;&amp; not e_a.(b) then add (b, j))
 					done;
 			Config.output f_en_fr (en ^ &quot;\n&quot; ^ fr ^ &quot;\n&quot; ^ !s)
 	in Config.parcours f_en f ignore;
